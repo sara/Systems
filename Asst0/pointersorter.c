@@ -42,7 +42,7 @@ Node* tokenize(char* string)
 		}
 		//get end index of alphabetic characters
 		end = start+1;
-		while(isalpha(string[i]))
+		while(isalpha(string[end]))
 		{
 			i++;
 			end++;
@@ -182,17 +182,30 @@ void destroyList(Node* head)
 		head = temp;
 	}
 }
+void printStringList(Node* head)
+{
+	while(head!=NULL)
+	{
+		printf("%s\n", head->data);
+		head = head->next;
+	}
+}
+
+
+
 int main(int argc, char** argv)
 {
 	//exit if invalid input
 	if (checkInput(argc, argv) == 1)
 		return 1;
 	char* inputString = argv[1];
+	printf("input: %s\n", inputString);
 	Node* stringList = tokenize(inputString);		
-	hashTable* myTable = sort(stringList);
-	printTable(myTable);
-	destroyTable(myTable);
-	destroyList(stringList);
+	printStringList(stringList);
+	//hashTable* myTable = sort(stringList);
+	//printTable(myTable);
+	//destroyTable(myTable);
+	//destroyList(stringList);
 	return 0;
 }
 
