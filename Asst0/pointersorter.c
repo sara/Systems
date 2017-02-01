@@ -49,7 +49,7 @@ Node* tokenize(char* string)
 		}
 		size = end-start+1;
 		//copy relevant characters over into temporary string
-		char* temp = (char*)malloc(sizeof(char)*size);
+		char temp[size];
 		memcpy(temp, string+start, size);
 		//make sure temporary string is properly null terminated
 		temp[size-1] = '\0';
@@ -121,10 +121,7 @@ hashTable* sort(Node* head)
 		//node to be inserted
 		Node* node = makeNode(head->data);
 		//if node is to be inserted at front of list
-		
-		if(hTable->table[index+1] == NULL)
-			printf("merp");
-		if(hTable->table[index]==NULL || strcmp(hTable->table[index]->data, node->data)<=0)
+		if(hTable->table[index]==NULL || strcmp(hTable->table[index]->data, node->data)>=0)
 			{
 				node->next = hTable->table[index];
 				hTable->table[index] = node;
@@ -135,7 +132,7 @@ hashTable* sort(Node* head)
 				Node* curr = hTable->table[index];
 				Node* prev = hTable->table[index];
 			//while string to be inserted comes after existing strings
-				while(curr!=NULL && strcmp(curr->data, node->data)>0)
+				while(curr!=NULL && strcmp(curr->data, node->data)<0)
 				{	
 					prev = curr;
 					curr = curr->next;
@@ -174,10 +171,12 @@ void destroyTable(hashTable* hTable)
 		while(curr!=NULL)
 		{
 			temp = curr->next;
+			free(curr->data);
 			free(curr);
 			curr = temp;
 		}
 	}
+	free(hTable->table);
 	free(hTable);
 }
 //free unsorted temp linked list
@@ -187,6 +186,7 @@ void destroyList(Node* head)
 	while(head!=NULL)
 	{
 		temp = head->next;
+		free(head->data);
 		free(head);
 		head = temp;
 	}
@@ -208,13 +208,11 @@ int main(int argc, char** argv)
 	if (checkInput(argc, argv) == 1)
 		return 1;
 	char* inputString = argv[1];
-	printf("input: %s\n", inputString);
 	Node* stringList = tokenize(inputString);		
-	printStringList(stringList);
 	hashTable* myTable = sort(stringList);
-	//printTable(myTable);
-	//destroyTable(myTable);
-	//destroyList(stringList);
+	printTable(myTable);
+	destroyTable(myTable);
+	destroyList(stringList);
 	return 0;
 }
 
