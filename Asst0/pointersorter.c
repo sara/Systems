@@ -72,10 +72,15 @@ Node* tokenize(char* string)
 }
 hashTable* makeHashTable()
 {
-	hashTable* myTable = (hashTable*)calloc(1, sizeof(hashTable));
+	hashTable* myTable = (hashTable*)malloc(sizeof(hashTable));
 	//not entirely sure if this is a double pointer. i'm pretty sure it is though
-	myTable -> table = (Node**)calloc(52, sizeof(Node*));
-	myTable -> numFilled = 0;
+	myTable -> table = (Node**)malloc(sizeof(Node*)*52);
+	int i;
+	for (i=0; i<52; i++)
+	{
+		myTable->table[i] = NULL;
+	}
+	myTable->numFilled = 0;
 	return myTable;
 }
 //works for determined edge cases. will run more scenarios
@@ -102,31 +107,33 @@ hashTable* sort(Node* head)
 	int index;
 	//leading letter
 	int leading;
-	hashTable* hTable = (hashTable*)malloc(sizeof(hashTable));
+	hashTable* hTable = makeHashTable();
 	//insert each Node into hashTable, staggering upper and lower cases for intuitive ordering
 	while(head!=NULL)
 	{
 		leading = head->data[0];
 		//uppercase
 		if(leading<=90)
-			index = 2*(leading - 65);
+			index = 2*(leading % 65);
 		//lowercase
 		else
-			index = 2*(leading-97)-1;
+			index = 2*(leading-96)-1;
 		//node to be inserted
 		Node* node = makeNode(head->data);
-		//node already at the desired index
-		Node* curr = hTable->table[index];
-		Node* prev = hTable->table[index];
 		//if node is to be inserted at front of list
-		if(hTable->table[index]==NULL || strcmp(curr->data, node->data)<=0)
+		
+		if(hTable->table[index+1] == NULL)
+			printf("merp");
+		if(hTable->table[index]==NULL || strcmp(hTable->table[index]->data, node->data)<=0)
 			{
-				node->next = curr;
+				node->next = hTable->table[index];
 				hTable->table[index] = node;
 			}
 		//if node is second node or later
 			else
 			{
+				Node* curr = hTable->table[index];
+				Node* prev = hTable->table[index];
 			//while string to be inserted comes after existing strings
 				while(curr!=NULL && strcmp(curr->data, node->data)>0)
 				{	
@@ -136,9 +143,11 @@ hashTable* sort(Node* head)
 				node->next = curr;
 				prev->next = node;
 			}
+			head = head->next;
 	}
 	return hTable;
 }
+
 void printTable(hashTable* hTable)
 {
 	int i;
@@ -202,7 +211,7 @@ int main(int argc, char** argv)
 	printf("input: %s\n", inputString);
 	Node* stringList = tokenize(inputString);		
 	printStringList(stringList);
-	//hashTable* myTable = sort(stringList);
+	hashTable* myTable = sort(stringList);
 	//printTable(myTable);
 	//destroyTable(myTable);
 	//destroyList(stringList);
