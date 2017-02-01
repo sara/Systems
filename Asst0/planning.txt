@@ -23,7 +23,9 @@ Stage 2: Parse string into words using all NONALPHABETIC characters as delimiter
 	- use strtok to divide string into words
 	- traverse tokens and place into linked list until run out of tokens - don't forget to malloc!
 
-
+Stage 2, Francisco-fied:
+	- traverse string, keeping track of start and end of alphabetic sequences
+	- once sequene is exited, memcpy the word, create a node, and tack it onto the list
 
 
 Stage 3: Insert into new data structure, SORTING AS YOU GO
