@@ -1,0 +1,24 @@
+Stage 1: Taking input
+	 -check that argc is exactly 2 (the file name and the string)
+	 	- else, return and print out a usage string
+	 -check that argv[1] is a string
+	 	- else, return and print out a usage string
+	 -check that input string is not only non-letter inputs
+	 	- else, print out nothing
+	 -check that input string is not empty
+	 	- else, print out nothing
+
+Stage 2: Parse string into words using all NONALPHABETIC characters as delimiters
+	- traverse string, keeping track of start and end of alphabetic sub-sequences
+	- once sub-sequene is exited, memcpy the word, create a node, and tack it onto the front of the linked list to be returned
+
+
+Stage 3: Insert into new data structure, sorting
+	- sorted words are kept in a hash table, where leading character's ASCII value corresponds to an index; indexing is arranged so that the alphabet follows natural order (AaBbCc...)
+	- at each Node in the linked list, copy the data into a new Node (might be able to reuse it though) move the head to point to the next node in the list
+	- compare new node's string field to that of node currently at list, moving down linked list until proper index is found; insert node	
+
+Stage 4: Traverse the final data structure, printing out each word on a new line until all are printed
+	- traverse through each index and each linked list therin. As you hit a Node in a given index, print it (with line breaks)
+
+Stage 5: free the hash Table and linked lists
