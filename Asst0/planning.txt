@@ -1,0 +1,58 @@
+Questions:
+In the case where you have words like Aand & and, I'm assuming Aand comes first - yes?
+
+Stage 1: Taking input
+	 -check that argc is exactly 2 (the file name and the string)
+	 	- else, return and print out a usage string
+	 -check that argv[1] is a string
+	 	- else, return and print out a usage string
+	 -check that input string is not only non-letter inputs
+	 	- else, print out nothing
+	 -check that input string is not empty
+	 	- else, print out nothing
+	- NOTE: if odd number of quotes, seems to turn into cat or something...?
+	- NOTE: inputs are delimited by spaces: something input as "sdfds"123 would be considered as a stromg sdfds123
+
+
+
+
+
+Stage 2: Parse string into words using all NONALPHABETIC characters as delimiters
+	Assuming you've successfully scanned in the string...
+	-  change all nonalphas to spaces
+	- use strtok to divide string into words
+	- traverse tokens and place into linked list until run out of tokens - don't forget to malloc!
+
+
+
+
+Stage 3: Insert into new data structure, SORTING AS YOU GO
+	- data structure will be hash table, where the key is the first letter, and the value is the word
+	- at each Node in the linked list, copy the data into a new Node (might be able to reuse it though) and free the current Node. move the head to point to the next node in the list
+	- put the new Node into the hash Table
+		- when you're at the proper index, check for  cases:
+				- if the input is a capital and the current isn't, stick it in front
+				- if they're both equal rank, find the length of the shorter string (now referred to as x)
+					-loop x times comparing values at indices; if you find the input string to be higher ranked, insert it. If you reach the end of the input string without finding it to be higher ranked, compare it to the next string in the linked list. if the next string is null, stick it in the bottom of the list
+	
+
+Stage 4: Traverse the final data structure, printing out each word on a new line until all are printed
+	- traverse through each index and each linked list therin. As you hit a Node in a given index, print it (with line breaks), and free the Node
+
+Stage 5: free the hash Table
+
+
+
+
+Errors:
+1. wrong number of inputs (return and print out a usage string)
+2. only non-letter inputs (print out nothing)
+3. empty inputs (print out nothing)
+4. "terrible, terrible things"
+
+
+
+Structs:
+- Node struct will have a char* data and a Node reference to next
+- HashTable struct will have a Node array, an int numItems (number of strings currently held)
+
