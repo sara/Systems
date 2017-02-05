@@ -50,7 +50,21 @@ Aand
 aAnd
 aand
 
-
+Case 10:
+Input: "The Alphabet goes from a to z and has an Uppercase Z"
+Output:
+Alphabet
+a
+an
+and
+from
+goes
+has
+The
+to
+Uppercase
+Z
+z
 
 
 
