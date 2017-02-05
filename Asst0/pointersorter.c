@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+
+//modify to return error codes (i.e. check if malloc/calloc works properly, exit nicely if not)
 typedef struct node
 {
 	char* data;

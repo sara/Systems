@@ -43,7 +43,7 @@ stuff
 thing
 
 Case 9:
-Input: "aand, aAnd!Aand--Aand"
+Input: "aand, aAnd=Aand--AAnd"
 Output:
 AAnd
 Aand
