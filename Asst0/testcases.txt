@@ -1,0 +1,56 @@
+Case 1:
+Input: none
+Output: "usage: pointersorter.c input_string\n", returns 1
+
+Case 2:
+Input: "abcdl" "ajd"
+Output: "usage: pointersorter.c input_string\n"
+
+Case 3:
+Input: "adsf" 43
+Output: "usage: pointersorter.c input_string\n", returns 1
+
+Case 4:
+Input: "761893.//~~]|"
+Output: nothing, returns 1
+
+Case 5: 
+Input: ""
+Output: nothing, returns 1
+
+Case 6: 
+Input: "4score and 7 years ago"
+Output:
+ago
+and
+score
+years
+
+Case 7: 
+Input: "thing stuff otherstuff blarp"
+Output:
+blarp
+otherstuff
+stuff
+thing
+
+Case 8: 
+Input: "thing1stuff3otherstuff, blarp"
+Output:
+blarp
+otherstuff
+stuff
+thing
+
+Case 9:
+Input: "aand, aAnd!Aand--Aand"
+Output:
+AAnd
+Aand
+aAnd
+aand
+
+
+
+
+
