@@ -116,10 +116,10 @@ hashTable* sort(Node* head)
 		leading = head->data[0];
 		//uppercase
 		if(leading<=90)
-			index = 2*(leading % 65);
+			index = leading - 65;
 		//lowercase
 		else
-			index = 2*(leading-96)-1;
+			index = leading-65-6;
 		//node to be inserted
 		Node* node = makeNode(head->data);
 		//if node is to be inserted at front of list

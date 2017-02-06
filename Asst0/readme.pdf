@@ -10,13 +10,13 @@ Stage 1: Taking input
 
 Stage 2: Parse string into words using all NONALPHABETIC characters as delimiters
 	- traverse string, keeping track of start and end of alphabetic sub-sequences
-	- once sub-sequene is exited, memcpy the word, create a node, and tack it onto the front of the linked list to be returned
+	- once sub-sequence is exited, memcpy the word, create a node, and tack it onto the front of the linked list to be returned
 
 
-Stage 3: Insert into new data structure, sorting
-	- sorted words are kept in a hash table, where leading character's ASCII value corresponds to an index; indexing is arranged so that the alphabet follows natural order (AaBbCc...)
-	- at each Node in the linked list, copy the data into a new Node (might be able to reuse it though) move the head to point to the next node in the list
-	- compare new node's string field to that of node currently at list, moving down linked list until proper index is found; insert node	
+Stage 3: Insert into new data structure, sorting as you go
+	- sorted words are kept in a hash table, where leading character's ASCII value corresponds to an index; indexing is arranged in such a way that uppercase letters are priorized first, then alphabetized
+	- at each Node in the linked list, copy the data into a new Node, move the head to point to the next node in the list
+	- compare new node's string field to that of node currently at list index, moving down linked list until proper index is found; insert node	
 
 Stage 4: Traverse the final data structure, printing out each word on a new line until all are printed
 	- traverse through each index and each linked list therin. As you hit a Node in a given index, print it (with line breaks)

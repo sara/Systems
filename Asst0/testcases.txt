@@ -43,6 +43,14 @@ stuff
 thing
 
 Case 9:
+Input: "Thing stuff otherstuff))))))))) blarp"
+Output:
+Thing
+blarp
+otherstuff
+stuff
+
+Case 9:
 Input: "aand, aAnd=Aand--AAnd"
 Output:
 AAnd
@@ -54,17 +62,16 @@ Case 10:
 Input: "The Alphabet goes from a to z and has an Uppercase Z"
 Output:
 Alphabet
+The
+Uppercase
+Z
 a
 an
 and
 from
 goes
 has
-The
 to
-Uppercase
-Z
 z
-
 
 
