@@ -2,16 +2,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 //how is input happening? assuming preprocessing willtake care of it, i.e. don't need main method
-
+//* INDICATES FREE SPACE, _ INDICATES TAKEN SPACE
 int main(int argc, char** argv)
 {
 }
 int i;
 //create the malloc-able array; cast as short* and initialize all empty spaces to 0
 *(short*) myBlock = 4998;
-for (i=1; i<2500; i++)
+for (i=2; i<5000; i++)
 {
-	*(short*) (myBlock +i) = 0;
+	myBlock[i] = '*';
 }
 
 
@@ -21,7 +21,7 @@ for (i=1; i<2500; i++)
 
 char* myMalloc (int numRequested)
 {
-	if(numRequested +2 <= *(short*) (myBlock[0]))
+	if(numRequested +2 <= *(short*)myBlock)
 		{
 			int index = checkContiguous(myBlock, numRequested+2)
 			{
@@ -31,7 +31,7 @@ char* myMalloc (int numRequested)
 				}
 				else
 				{
-					return defrag(myBlock);
+					return (char*)defrag(myBlock);
 				}
 			}
 		}
@@ -100,7 +100,16 @@ short* checkContiguous (char* myBlock, int numRequested)
 
 void free (char* p)
 {
+	//make sure this pointer was within the bounds of the array
+	if (p<myBlock+2 || p>myBlock+4996)
+		return -1;
 	
+	//error handling in case the location wasn't actually malloced, or if it points to an area that isn't metadata
+	if (*(short*)place %2 !=1 || *p == '_' || *p == '*' )
+		return -1;
+
+	//decrement the number there to be even, indicating that x many bytes after it are free
+	*(short*)place -=1;
 }
 
 
