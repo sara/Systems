@@ -26,14 +26,24 @@ Step 2: myMalloc
 		requested
 			- if not enough space, attempt to defrag
 				- if defrag "fails" i.e. array still cannot accomodate given amount of memory, return an error (may have unique error code)
-	2. if success, set first index of sufficiently large block to # of bytes +1 if even,
+	2. if success, set first index of sufficiently large block to # of bytes +1 if even; set all bytes involved in that malloc to *
+	3. all free bytes should be set to _
+	4. After indicating size of full block, indicate size of leftover free space in block immediately following
 
 
-checkContiguous (char [], int numberOfBytes//n + 2 for metadata)
+checkContiguous
+(char [], int numberOfBytes//n + 2 for metadata)
 	- set up pointer to traverse array
 		- check meta data, skip ahead by n (don't need to do n+1 because memory can only be allocated evenly, and the +1 indicates the space is full; i.e. moving ahead by n should lead you to either next entry or first empty spot)
 	- continue process until encounter even >= target or end of array
 		- if success, return index number; else return -1
+
+
+defrag
+- traverse through array looking for free block
+	- if found, save reference to it and check if block immediately following is free also
+		- if so, combine sizes in the first pointer; else continue
+
 
 
 

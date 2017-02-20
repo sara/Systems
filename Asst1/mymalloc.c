@@ -2,20 +2,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 //how is input happening? assuming preprocessing willtake care of it, i.e. don't need main method
-//* INDICATES FREE SPACE, _ INDICATES TAKEN SPACE
+//ALL FREE SPACE SHOULD INDICATE HOW MUCH COMES AFTER IT
+//how to deal with used space? can't fill it with any data because that's the user's space to utilize...?
+
 int main(int argc, char** argv)
 {
 }
 int i;
+int freeSpace = 4998;
 //create the malloc-able array; cast as short* and initialize all empty spaces to 0
-*(short*) myBlock = 4998;
-for (i=2; i<5000; i++)
+for (i=0; i<5000; i++)
 {
-	myBlock[i] = '*';
+	*(short*)(myBlock+i) = freeSpace;
+	i+=2;
+	freeSpace -= 2;
 }
-
-
-
 
 
 
@@ -27,6 +28,7 @@ char* myMalloc (int numRequested)
 			{
 				if (index != -1)
 				{
+					*(short*)myBlock -= numRequested+2;
 					return index;
 				}
 				else
@@ -77,26 +79,30 @@ short* checkContiguous (char* myBlock, int numRequested)
 	return -1;
 }
 
-//or is it a short*?
-/*char* defrag (char* myBlock)
+//find contiguous blocks of free space and combine them to a single large block
+char* defrag (char* myBlock)
 {
 	short* prev = (short*)(myBlock);
 	short* curr = (short*)(myBlock);
-	int count = 0;
+	//# of bytes so far accounted for - begins at 2 because of the array metadata always present at 0
+	int count = 2;
+
 	while (count <5000)
 	{
-		*curr = *(short*)(myBlock + count)
+		prev = myBlock+count;
+		//if the current block of memory is free, check the next block to see if can combine
+		if (*(short*)(myBlock+count) %2 == 0)
 		{
-			if (*curr%2 ==1)
+			//add the amount indicated, plus two for the block itself
+			count += 2+*(short*)(myBlock+count);
+			curr = (short*)(myBlock+count);
+			if (*curr%2==0)
 			{
-				curr += *curr;
-				count 
-				prev = curr;
+				*prev += *curr +2;
 			}
-
 		}
 	}
-}*/
+}
 
 void free (char* p)
 {
