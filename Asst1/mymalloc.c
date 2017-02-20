@@ -43,26 +43,37 @@ char* myMalloc (int numRequested)
 //return type???
 short* checkContiguous (char* myBlock, int numRequested)
 {
-	int i=1;
+	short i=2;
 	//keep running count of amount of contiguous memory available
 	int contigCount;
+	//indicates number of bytes following current slot
+	short numAdd;
 
 	while (i<5000)
 	{
-		if (*(short*)(myBlock+i) % 2 == 1)
+		//safely add the value of i to the string address
+		myBlock += i*sizeof(char);
+		//number at current index;
+		numAdd = *(short*)myBlock;
+
+		//skip ahead by the number of blocks indicated if the stretch of memory is full (odd numbers indicate full, even implies empty)
+		if (numAdd % 2 == 1)
 		{
-			i += myBlock[i];
+			//add 1 because the unsigned short in the current slot takes up 2 bytes, but the number indicated is one larger than the actual space taken (to indicate used)
+			i += numAdd+1;
 			contigCount = 0;
 		}
 		else
 		{
-			contigCount ++;
+			i+= numAdd+2;
+			contigCount += numAdd+2;
 			if (contigCount == numRequested)
 			{
-				return (short*)(myBlock+i);
+				return (short*)(myBlock-contigCount);
 			}
 		}
-	}
+
+}
 	return -1;
 }
 
