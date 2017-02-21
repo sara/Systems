@@ -5,40 +5,41 @@
 //ALL FREE SPACE SHOULD INDICATE HOW MUCH COMES AFTER IT
 //how to deal with used space? can't fill it with any data because that's the user's space to utilize...?
 
-int main(int argc, char** argv)
-{
-}
-int i;
-int freeSpace = 4998;
-//create the malloc-able array; cast as short* and initialize all empty spaces to 0
-for (i=0; i<5000; i++)
-{
-	*(short*)(myBlock+i) = freeSpace;
-	i+=2;
-	freeSpace -= 2;
-}
-
-
 
 char* myMalloc (int numRequested)
 {
+	//only even blocks of memory can be allocated
+	if (numRequested % 2 == 1)
+		numRequested ++;
+		
+	//check that there's enough space for both user data and metadata	
 	if(numRequested +2 <= *(short*)myBlock)
 		{
-			int index = checkContiguous(myBlock, numRequested+2)
+			//get index to place metadata
+			short* index = checkContiguous(myBlock, numRequested+2);
 			{
-				if (index != -1)
+				if (*index == -1)
 				{
-					*(short*)myBlock -= numRequested+2;
-					return index;
+					defrag(myBlock);
+					*index = *checkContiguous(myBlock, numRequested + 2);
+					if (*index == -1)
+						{
+							return NULL;
+						}
 				}
-				else
+				
+				if (*index != -1)
 				{
-					return (char*)defrag(myBlock);
+					//decrement the amount requested+metadata from the master header
+					*(short*)myBlock -= numRequested+2;
+					//update the amount of space remaining after the block being used
+					*(short*)(myBlock + *index + numRequested + 2 ) = *(short*)(myBlock+*index) - (short)(numRequested+2);
+					//indicate that the current block is full
+					*(short*)(myBlock+*index+numRequested) = (short)(numRequested + 1);
+					return (char*)index;
 				}
 			}
 		}
-	else
-		return enum boolean answer = FALSE;
 }
 
 //numRequested = actual # of bytes requested, plus 2 for metadata
@@ -66,6 +67,7 @@ short* checkContiguous (char* myBlock, int numRequested)
 			contigCount = 0;
 		}
 		else
+
 		{
 			i+= numAdd+2;
 			contigCount += numAdd+2;
@@ -74,13 +76,12 @@ short* checkContiguous (char* myBlock, int numRequested)
 				return (short*)(myBlock-contigCount);
 			}
 		}
-
-}
-	return -1;
+	}
+	return NULL;
 }
 
 //find contiguous blocks of free space and combine them to a single large block
-char* defrag (char* myBlock)
+void defrag (char* myBlock)
 {
 	short* prev = (short*)(myBlock);
 	short* curr = (short*)(myBlock);
@@ -89,7 +90,7 @@ char* defrag (char* myBlock)
 
 	while (count <5000)
 	{
-		prev = myBlock+count;
+		prev = (short*)myBlock+count;
 		//if the current block of memory is free, check the next block to see if can combine
 		if (*(short*)(myBlock+count) %2 == 0)
 		{
@@ -103,19 +104,19 @@ char* defrag (char* myBlock)
 		}
 	}
 }
-
-void free (char* p)
+int free (char* p)
 {
 	//make sure this pointer was within the bounds of the array
 	if (p<myBlock+2 || p>myBlock+4996)
 		return -1;
 	
 	//error handling in case the location wasn't actually malloced, or if it points to an area that isn't metadata
-	if (*(short*)place %2 !=1 || *p == '_' || *p == '*' )
+	if (*(short*)p %2 !=1 || *p == '_' || *p == '*' )
 		return -1;
 
 	//decrement the number there to be even, indicating that x many bytes after it are free
 	*(short*)place -=1;
+	return 0;
 }
 
 
