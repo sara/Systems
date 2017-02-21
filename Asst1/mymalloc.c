@@ -104,25 +104,31 @@ void defrag (char* myBlock)
 		}
 	}
 }
-int free (char* p)
+
+int myFree (char* p)
+
 {
+	int answer;
 	//make sure this pointer was within the bounds of the array
 	if (p<myBlock+2 || p>myBlock+4996)
-		return -1;
+		answer = -1;
 	
 	//error handling in case the location wasn't actually malloced, or if it points to an area that isn't metadata
-	if (*(short*)p %2 !=1 || *p == '_' || *p == '*' )
-		return -1;
+	else if (*(short*)p %2 !=1 || *p == '_' || *p == '*' )
+		answer = -1;
 
 	//decrement the number there to be even, indicating that x many bytes after it are free
-	*(short*)place -=1;
-	return 0;
+	else *(short*)p -=1;
+	 	answer = 0;
+
+	return answer;
+	
 }
 
-
-
-
-
+int main (int c, char** argv)
+{
+	return 0;
+}
 
 
 
