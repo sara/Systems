@@ -12,14 +12,16 @@ static char myBlock [5000];
 //returns pointer to block of memory if sufficient space remains in myBlock
 void* mymalloc(size_t numRequested);
 
-//returns pointer to index of first contiguous block of suitable size if exists, -1 if doesn't
-unsigned short* checkContiguous(char* myBlock, size_t numRequested);
+boolean checkSpace(char* myBlock, size_t numReq);
 
+char* findSpace(char* myBlock, unsigned short numReq);
 //merges contiguous blocks of free memory into a single large block 
 void defrag(char* myBlock);
 
-int myFree (char* p);
+int myfree (char* p);
 
-void printArr(char* myBlock);
+void* mallocDetails(size_t numRequested, char* index);
+
+size_t validateInput(size_t numRequested);
 
 void initArray(char* myBlock);

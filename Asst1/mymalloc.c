@@ -9,7 +9,10 @@ boolean isInitialized = FALSE;
 
 void* mymalloc (size_t numRequested)
 {
-	initArray(myBlock);
+	if (!isInitialized)
+		{
+			initArray(myBlock);
+		}
 	numRequested = validateInput(numRequested);
 	char* thatSoMeta;
 	//might want to include error message here
@@ -26,8 +29,7 @@ void* mymalloc (size_t numRequested)
 		if(thatSoMeta == 0)
 			return 0;
 	}
-	//do the thing
-	
+	return mallocDetails(numRequested, thatSoMeta);	
 }
 //find whether there is adequate free space in block 
 boolean checkSpace(char* myBlock, size_t numReq)
@@ -132,15 +134,13 @@ int myfree (char* p)
 
 //set initial amount of free space and zero out the array in case of garbage null terminators
 void initArray(char* myBlock)
-void printArr(char* myBlock)
 {
 	int i;
-	printf("%i", sizeof(myBlock)/sizeof(char));
-	printf("%i\n\n", sizeof((unsigned short*)(myBlock))/sizeof(unsigned short));
-	for (i=0; i<sizeof(myBlock)/sizeof(unsigned short); i++)
+	for (i=0; i<5000; i++)
 	{
-		printf("%hu\n", *(unsigned short*)(myBlock + i*sizeof(unsigned short)));
+		myBlock[i] = '0';
 	}
+	*(unsigned short*)myBlock = (unsigned short)4998;
 }
 size_t validateInput(size_t numRequested)
 {
@@ -151,7 +151,7 @@ size_t validateInput(size_t numRequested)
 	return (numRequested + numRequested%2);
 }
 
-void mallocDetails(size_t numRequested, char* index)
+void* mallocDetails(size_t numRequested, char* index)
 {
 	//amt of free space @ current index
 	short total = *(short*)index;
@@ -162,7 +162,7 @@ void mallocDetails(size_t numRequested, char* index)
 		}
 	//set given index to indicate num allocated
 	*(short*)index = (short)(numRequested+1);
-	return (void*)index;
+	return (void*)(index+2*sizeof(char));
 }
 
 
