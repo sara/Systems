@@ -7,12 +7,19 @@ boolean isInitialized = FALSE;
 //ALL FREE SPACE SHOULD INDICATE HOW MUCH COMES AFTER IT
 //HOW CAN I FILL THE ARRAY METADATA SLOT!?
 
-void* mymalloc (int numRequested)
+void* mymalloc (size_t numRequested)
 {
+	initArray(myBlock);
+
+	if (numRequested <= 0)
+		{
+			printf("Invalid size request\n");
+			return NULL;
+		}
 	//only even blocks of memory can be allocated
 	if (numRequested % 2 == 1)
 		numRequested ++;
-		
+
 	//check that there's enough space for both user data and metadata	
 	if(numRequested +2 <= *(unsigned short*)myBlock)
 		{
@@ -46,7 +53,7 @@ void* mymalloc (int numRequested)
 
 //numRequested = actual # of bytes requested, plus 2 for metadata
 //return type???
-unsigned short* checkContiguous (char* myBlock, int numRequested)
+unsigned short* checkContiguous (char* myBlock, size_t numRequested)
 {
 	unsigned short i=2;
 	//keep running count of amount of contiguous memory available
@@ -135,8 +142,13 @@ void initArray(char* myBlock)
 		}
 }
 
-
-
+/*
+int main (int argc, char** argv)
+{
+	int* x = (int*)mymalloc(sizeof(int));
+	*x = 8;
+	printf("%i\n", *x);
+}*/
 
 
 
