@@ -10,14 +10,16 @@ typedef enum {FALSE, TRUE} boolean;
 static char myBlock [5000];
 
 //returns pointer to block of memory if sufficient space remains in myBlock
-void* myMalloc(int numRequested);
+void* mymalloc(size_t numRequested);
 
 //returns pointer to index of first contiguous block of suitable size if exists, -1 if doesn't
-unsigned short* checkContiguous(char* myBlock, int numRequested);
+unsigned short* checkContiguous(char* myBlock, size_t numRequested);
 
 //merges contiguous blocks of free memory into a single large block 
 void defrag(char* myBlock);
 
 int myFree (char* p);
+
+void printArr(char* myBlock);
 
 void initArray(char* myBlock);

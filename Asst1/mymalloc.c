@@ -10,7 +10,7 @@ boolean isInitialized = FALSE;
 void* mymalloc (size_t numRequested)
 {
 	initArray(myBlock);
-
+	printArr(myBlock);	
 	if (numRequested <= 0)
 		{
 			printf("Invalid size request\n");
@@ -23,24 +23,23 @@ void* mymalloc (size_t numRequested)
 	//check that there's enough space for both user data and metadata	
 	if(numRequested +2 <= *(unsigned short*)myBlock)
 		{
-			printf("in\n");
 			//get index to place metadata
 			unsigned short* index = checkContiguous(myBlock, numRequested+2);
-			{
-				if (*index == -1)
+		{
+				if (index == NULL )
 				{
 					defrag(myBlock);
 					*index = *checkContiguous(myBlock, numRequested + 2);
-					if (*index == -1)
+					if (index == NULL)
 						{
 							return NULL;
 						}
 				}
 				
-				if (*index != -1)
+				else
 				{
 					//decrement the amount requested+metadata from the master header
-					*(unsigned short*)myBlock -= numRequested+2;
+					*(unsigned short*)myBlock -= (unsigned short) numRequested+2;
 					//update the amount of space remaining after the block being used
 					*(unsigned short*)(myBlock + *index + numRequested + 2 ) = *(unsigned short*)(myBlock+*index) - (unsigned short)(numRequested+2);
 					//indicate that the current block is full
@@ -52,7 +51,6 @@ void* mymalloc (size_t numRequested)
 }
 
 //numRequested = actual # of bytes requested, plus 2 for metadata
-//return type???
 unsigned short* checkContiguous (char* myBlock, size_t numRequested)
 {
 	unsigned short i=2;
@@ -134,24 +132,27 @@ int myfree (char* p)
 	
 }
 
+//set initial metadata block, and indicate free space at all available blocks in empty array
 void initArray(char* myBlock)
 {
+	int i;
 	if (!isInitialized)
 		{
 			*(unsigned short*)myBlock = (unsigned short) 4998;
+			for (i=2; i<5000; i+=2)
+			{
+				*(short*)(myBlock+i) = 4998-i;
+			}
 		}
 }
-
-/*
-int main (int argc, char** argv)
+//for some reason the length comes out as 84 and 4?!?!?
+void printArr(char* myBlock)
 {
-	int* x = (int*)mymalloc(sizeof(int));
-	*x = 8;
-	printf("%i\n", *x);
-}*/
-
-
-
-
-
-
+	int i;
+	printf("%i", sizeof(myBlock)/sizeof(char));
+	printf("%i\n\n", sizeof((unsigned short*)(myBlock))/sizeof(unsigned short));
+	for (i=0; i<sizeof(myBlock)/sizeof(unsigned short); i++)
+	{
+		printf("%hu\n", *(unsigned short*)(myBlock + i*sizeof(unsigned short)));
+	}
+}
