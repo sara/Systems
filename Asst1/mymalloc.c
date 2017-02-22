@@ -10,49 +10,29 @@ boolean isInitialized = FALSE;
 void* mymalloc (size_t numRequested)
 {
 	initArray(myBlock);
-	printArr(myBlock);	
-	if (numRequested <= 0)
-		{
-			printf("Invalid size request\n");
-			return NULL;
-		}
-	//only even blocks of memory can be allocated
-	if (numRequested % 2 == 1)
-		numRequested ++;
-
-	//check that there's enough space for both user data and metadata	
-	if(numRequested +2 <= *(unsigned short*)myBlock)
-		{
-			//get index to place metadata
-			unsigned short* index = checkContiguous(myBlock, numRequested+2);
-		{
-				if (index == NULL )
-				{
-					defrag(myBlock);
-					*index = *checkContiguous(myBlock, numRequested + 2);
-					if (index == NULL)
-						{
-							return NULL;
-						}
-				}
-				
-				else
-				{
-					//decrement the amount requested+metadata from the master header
-					*(unsigned short*)myBlock -= (unsigned short) numRequested+2;
-					//update the amount of space remaining after the block being used
-					*(unsigned short*)(myBlock + *index + numRequested + 2 ) = *(unsigned short*)(myBlock+*index) - (unsigned short)(numRequested+2);
-					//indicate that the current block is full
-					*(unsigned short*)(myBlock+*index+numRequested) = (unsigned short)(numRequested + 1);
-					return (void*)index;
-				}
-			}
-		}
+	numRequested = validateInput(numRequested);
+	char* thatSoMeta;
+	//might want to include error message here
+	if (numRequested == 0)
+		return 0;
+	if (checkSpace)
+	{
+		thatSoMeta = findSpace(myBlock, numRequested);
+	}
+	else
+	{
+		defrag(myBlock);
+		thatSoMeta = findSpace(myBlock, numRequested);
+		if(thatSoMeta == 0)
+			return 0;
+	}
+	//do the thing
+	
 }
 //find whether there is adequate free space in block 
 boolean checkSpace(char* myBlock, size_t numReq)
 {
-        //tracks how far weve' gone, loops terminates after 5000 bytes
+        //tracks how far we've gone, loops terminates after 5000 bytes
         unsigned short consumed = 0;
         //keeps trace of the current value in the metadata that we are currently looking at in the loop
         unsigned short currMeta = 0;
@@ -79,7 +59,7 @@ boolean checkSpace(char* myBlock, size_t numReq)
 		return FALSE;
 }
 //returns pointer to first incidence of sufficiently large block
-char* findSpace(char* myBlock, unsigned shot numReq)
+char* findSpace(char* myBlock, unsigned short numReq)
 {	
 	//tracks how far down the array has been traveled
 	unsigned short consumed = 0;
@@ -90,9 +70,8 @@ char* findSpace(char* myBlock, unsigned shot numReq)
 	{
 		currMeta = *(unsigned short*)myBlock;
 		//return pointer to start of META (not user!) data block if sufficient size free block is found
-		if((currMeta%2==0) && (currMeta>=numReq))
+		if((currMeta%2==0) && (currMeta>=numReq+2))
 		{
-			myBlock += 2;
 			return myBlock;
 		}
 		else
@@ -104,7 +83,7 @@ char* findSpace(char* myBlock, unsigned shot numReq)
 			consumed += increment;
 		}
 	}
-	return NULL;
+	return FALSE;
 } 
 
 //find contiguous blocks of free space and combine them to a single large block
@@ -163,6 +142,32 @@ void printArr(char* myBlock)
 		printf("%hu\n", *(unsigned short*)(myBlock + i*sizeof(unsigned short)));
 	}
 }
+size_t validateInput(size_t numRequested)
+{
+	//must be within array bounds
+	if (numRequested<=0 || numRequested>4998)
+		return 0;
+	//allocation must be even
+	return (numRequested + numRequested%2);
+}
+
+void mallocDetails(size_t numRequested, char* index)
+{
+	//amt of free space @ current index
+	short total = *(short*)index;
+	//check for remainder to set index immediately following
+	if (total - numRequested>0)
+		{
+			*(short*)(index + (numRequested+2)*sizeof(char)) = total - (numRequested+2);
+		}
+	//set given index to indicate num allocated
+	*(short*)index = (short)(numRequested+1);
+	return (void*)index;
+}
+
+
+
+
 
 
 
