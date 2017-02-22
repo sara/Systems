@@ -49,43 +49,63 @@ void* mymalloc (size_t numRequested)
 			}
 		}
 }
-
-//numRequested = actual # of bytes requested, plus 2 for metadata
-unsigned short* checkContiguous (char* myBlock, size_t numRequested)
+//find whether there is adequate free space in block 
+boolean checkSpace(char* myBlock, size_t numReq)
 {
-	unsigned short i=2;
-	//keep running count of amount of contiguous memory available
-	int contigCount;
-	//indicates number of bytes following current slot
-	unsigned short numAdd;
+        //tracks how far weve' gone, loops terminates after 5000 bytes
+        unsigned short consumed = 0;
+        //keeps trace of the current value in the metadata that we are currently looking at in the loop
+        unsigned short currMeta = 0;
 
-	while (i<5000)
-	{
-		//safely add the value of i to the string address
-		myBlock += i*sizeof(char);
-		//number at current index;
-		numAdd = *(short*)myBlock;
-
-		//skip ahead by the number of blocks indicated if the stretch of memory is full (odd numbers indicate full, even implies empty)
-		if (numAdd % 2 == 1)
+        while(consumed<5000)
 		{
-			//add 1 because the unsigned short in the current slot takes up 2 bytes, but the number indicated is one larger than the actual space taken (to indicate used)
-			i += numAdd+1;
-			contigCount = 0;
+                //takes the value of currMeta for this iteration of loop
+                currMeta = *(unsigned short*)myBlock;
+                //if you find a portion of memory which is free and sufficiently large then success
+                if((currMeta%2)==0 && (currMeta>=numReq))
+				{
+                    return TRUE;
+                }
+				else
+				{
+        			//this calculation catches both free and used jumps (because of mod arith)
+                    unsigned short increment = currMeta - (currMeta%2) + 2;
+        			//increment block to new position (CHECK to make sure this only affects myBlock inside this method
+                    myBlock += increment*sizeof(char);
+      				//and increment distanceTraveled 
+                    consumed += increment*sizeof(char);;
+                }
+        }
+		return FALSE;
+}
+//returns pointer to first incidence of sufficiently large block
+char* findSpace(char* myBlock, unsigned shot numReq)
+{	
+	//tracks how far down the array has been traveled
+	unsigned short consumed = 0;
+	//keeps trace of value contained in current metadata block
+	unsigned short currMeta = 0;
+	
+	while(consumed<5000)
+	{
+		currMeta = *(unsigned short*)myBlock;
+		//return pointer to start of META (not user!) data block if sufficient size free block is found
+		if((currMeta%2==0) && (currMeta>=numReq))
+		{
+			myBlock += 2;
+			return myBlock;
 		}
 		else
-
 		{
-			i+= numAdd+2;
-			contigCount += numAdd+2;
-			if (contigCount == numRequested)
-			{
-				return (short*)(myBlock-contigCount);
-			}
+			//catches both free and used jumps through mod arith
+			unsigned short increment = currMeta - (currMeta%2) + 2;
+			myBlock += increment*sizeof(char);
+			//increment distanace traveled
+			consumed += increment;
 		}
 	}
 	return NULL;
-}
+} 
 
 //find contiguous blocks of free space and combine them to a single large block
 void defrag (char* myBlock)
@@ -113,7 +133,6 @@ void defrag (char* myBlock)
 }
 
 int myfree (char* p)
-
 {
 	int answer;
 	//make sure this pointer was within the bounds of the array
@@ -132,20 +151,8 @@ int myfree (char* p)
 	
 }
 
-//set initial metadata block, and indicate free space at all available blocks in empty array
+//set initial amount of free space and zero out the array in case of garbage null terminators
 void initArray(char* myBlock)
-{
-	int i;
-	if (!isInitialized)
-		{
-			*(unsigned short*)myBlock = (unsigned short) 4998;
-			for (i=2; i<5000; i+=2)
-			{
-				*(short*)(myBlock+i) = 4998-i;
-			}
-		}
-}
-//for some reason the length comes out as 84 and 4?!?!?
 void printArr(char* myBlock)
 {
 	int i;
@@ -156,3 +163,7 @@ void printArr(char* myBlock)
 		printf("%hu\n", *(unsigned short*)(myBlock + i*sizeof(unsigned short)));
 	}
 }
+
+
+
+
