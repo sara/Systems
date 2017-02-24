@@ -7,7 +7,7 @@ boolean isInitialized = FALSE;
 //ALL FREE SPACE SHOULD INDICATE HOW MUCH COMES AFTER IT
 //HOW CAN I FILL THE ARRAY METADATA SLOT!?
 
-void* mymalloc (size_t numRequested)
+void* mymalloc (size_t numRequested, char* file, int line)
 {
 	if (!isInitialized)
 		{
@@ -89,7 +89,7 @@ char* findSpace(char* myBlock, unsigned short numReq)
 } 
 
 //find contiguous blocks of free space and combine them to a single large block
-void defrag (void* myBlock)
+void defrag (char* myBlock)
 {
 	unsigned short distanceTraveled = 0;
 	unsigned short* current = (short*) myBlock;
@@ -120,7 +120,7 @@ void defrag (void* myBlock)
 }
 
 //return boolean true for success and failure
-boolean myfree(char* target)
+boolean myfree(char* target, char* file, int line)
 {	
 	unsigned short* targetFree = (unsigned short*) (target  - 2);
 	unsigned short* ptr = (unsigned short*) myBlock;
@@ -135,14 +135,12 @@ boolean myfree(char* target)
 	{
 		if (*ptr %2 == 1)
 		{
-			*ptr %2 -= 1;
+			(*ptr%2) -= 1;
 			return TRUE;
 		}
 	}
-	return false;
+	return FALSE∫;
 }
-
-
 
 //set initial amount of free space and zero out the array in case of garbage null terminators
 void initArray(char* myBlock)

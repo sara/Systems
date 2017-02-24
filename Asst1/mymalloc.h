@@ -10,7 +10,7 @@ typedef enum {FALSE, TRUE} boolean;
 static char myBlock [5000];
 
 //returns pointer to block of memory if sufficient space remains in myBlock
-void* mymalloc(size_t numRequested);
+void* mymalloc(size_t numRequested, char* file, int line);
 
 boolean checkSpace(char* myBlock, size_t numReq);
 
@@ -18,7 +18,7 @@ char* findSpace(char* myBlock, unsigned short numReq);
 //merges contiguous blocks of free memory into a single large block 
 void defrag(char* myBlock);
 
-int myfree (char* p);
+boolean myfree (char* p, char* file, int line);
 
 void* mallocDetails(size_t numRequested, char* index);
 

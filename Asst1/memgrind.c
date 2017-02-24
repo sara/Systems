@@ -1,18 +1,22 @@
-include "mymalloc.h"
-include <time.h>
-include <stdlib.h>
-include <stdio.h>
+#include "mymalloc.c"
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-void main(int argc, char * argv[])
+
+void initMyPointers(char** pointerArr)
 {
-	grindA();
-	//grindB();
-	//grindC();
-	//grindD();
+	int i;
+	for (i=0; i<sizeof(pointerArr)/sizeof(char*); i++)
+	{
+		pointerArr[i] = NULL;
+	}
 }
+
 void grindA()
 {
-        char * myPointers[1000] = NULL;
+        char * myPointers[1000];
+		initArr(myPointers);
         int i = 0;
         for(i = 0; i<1000; i++)
 		{
@@ -26,19 +30,20 @@ void grindA()
 
 void grindB()
 {
+
         char * tmp = NULL;
         int j = 0;
         for(j = 0; j<1000; j++)
 		{
-                char * tmp = (char*) malloc(1*sizeof(char));
+                char * tmp = (char*)malloc(1*sizeof(char));
                 free(tmp);
-        }
+		}
 }
 
 void grindC()
 {
 	char* myPointers[1000];
-	initArray (myPointers);
+	initMyPointers (myPointers);
 	int operation;
 	int countmalloc = 0;
 	int position = 0;
@@ -85,11 +90,10 @@ void grindC()
 	}
 }
 
-
 void grindD()
 {
 	char* myPointers [1000];
-	initArr(myPointers);
+	initMyPointers(myPointers);
 	int size, operation;
 	int index = 0;
 	int j;
@@ -103,7 +107,7 @@ void grindD()
 		{
 			numMallocs ++;
 			size = (rand() %65) + 1;
-			myPointers[index] = (char*)mymalloc(size*sizeof(char));
+			myPointers[index] = (char*)malloc(size*sizeof(char));
 			index ++;
 			spaceUsed += size+2;
 		}
@@ -136,11 +140,11 @@ void grindE()
 }
 
 
-void initArray(char** pointerArr)
+void main(int argc, char * argv[])
 {
-	int i;
-	for (i=0; i<sizeof(pointerArr)/sizeof(char*); i++)
-	{
-		pointerArr[i] = NULL;
-	}
+	grindA();
+	//grindB();
+	//grindC();
+	//grindD();
 }
+
