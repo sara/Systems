@@ -89,48 +89,60 @@ char* findSpace(char* myBlock, unsigned short numReq)
 } 
 
 //find contiguous blocks of free space and combine them to a single large block
-void defrag (char* myBlock)
+void defrag (void* myBlock)
 {
-	unsigned short* prev = (unsigned short*)(myBlock);
-	unsigned short* curr = (unsigned short*)(myBlock);
-	//# of bytes so far accounted for - begins at 2 because of the array metadata always present at 0
-	int count = 2;
+	unsigned short distanceTraveled = 0;
+	unsigned short* current = (short*) myBlock;
+	unsigned short* probe = (short*) myBlock;
+	unsigned short addup = 0;
 
-	while (count <5000)
+	while (distanceTraveled < 5000)
 	{
-		prev = (unsigned short*)myBlock+count;
-		//if the current block of memory is free, check the next block to see if can combine
-		if (*(unsigned short*)(myBlock+count) %2 == 0)
+		addup = 0;
+		if(*current % 2 == 0)
 		{
-			//add the amount indicated, plus two for the block itself
-			count += 2+*(unsigned short*)(myBlock+count);
-			curr = (unsigned short*)(myBlock+count);
-			if (*curr%2==0)
+			probe += *(current) + 2;
+			while (*probe%2 == 0)
 			{
-				*prev += *curr +2;
+				addup += *probe + 2;
+				probe += *probe + 2;
+			}
+
+			if (addup > 0)
+			{
+				*current += addup;
 			}
 		}
+		distanceTraveled = *current - (*current%2) + 2;
+		current += *current - (*current % 2) +2;
+		probe = current;
 	}
 }
 
-int myfree (char* p)
-{
-	int answer;
-	//make sure this pointer was within the bounds of the array
-	if (p<myBlock+2 || p>myBlock+4996)
-		answer = -1;
-	
-	//error handling in case the location wasn't actually malloced, or if it points to an area that isn't metadata
-	else if (*(unsigned short*)p %2 !=1 || *p == '_' || *p == '*' )
-		answer = -1;
-
-	//decrement the number there to be even, indicating that x many bytes after it are free
-	else *(unsigned short*)p -=1;
-	 	answer = 0;
-
-	return answer;
-	
+//return boolean true for success and failure
+boolean myfree(char* target)
+{	
+	unsigned short* targetFree = (unsigned short*) (target  - 2);
+	unsigned short* ptr = (unsigned short*) myBlock;
+	unsigned short distance = 0;
+	while (targetFree != ptr && distance < 5000)
+	{
+		distance += (*ptr) - (*ptr %2 + 2);
+		ptr += *ptr - *ptr%2 + 2;
+	}
+	//here either targetFree = ptr or distance > 5000
+	if (targetFree == ptr)
+	{
+		if (*ptr %2 == 1)
+		{
+			*ptr %2 -= 1;
+			return TRUE;
+		}
+	}
+	return false;
 }
+
+
 
 //set initial amount of free space and zero out the array in case of garbage null terminators
 void initArray(char* myBlock)
