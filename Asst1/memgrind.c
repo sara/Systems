@@ -5,7 +5,10 @@ include <stdio.h>
 
 void main(int argc, char * argv[])
 {
-
+	grindA();
+	//grindB();
+	//grindC();
+	//grindD();
 }
 void grindA()
 {
@@ -34,15 +37,56 @@ void grindB()
 
 void grindC()
 {
+	char* myPointers[1000];
+	initArray (myPointers);
+	int operation;
+	int countmalloc = 0;
+	int position = 0;
+	int counter = 1000;
 
+	while (counter>0)
+	{
+		if(countmalloc >= counter)
+		{
+			operation = 1;
+		}
+		else if (countmalloc == 0)
+		{
+			operation = 0;
+		}
+		else
+		{
+			operation = rand()%2;
+		}
+
+		switch(operation)
+		{
+			case 0:
+			{
+				countmalloc ++;
+				myPointers[position] = (char*) malloc (1*sizeof(char));
+				position++;
+				break;
+			}
+			case 1:
+			{
+				position --;
+				free(myPointers[position]);
+				countmalloc --;
+				break;
+			}
+			default:
+			{
+				printf("error");
+				return;
+			}
+			counter --;
+		}
+	}
 }
+
 
 void grindD()
-{
-	
-}
-
-int grindD()
 {
 	char* myPointers [1000];
 	initArr(myPointers);
@@ -85,6 +129,12 @@ int grindD()
 	}
 }
 //start at mallocing 5000, then decrement by two, alternating malloc and free each time
+
+void grindE()
+{
+	
+}
+
 
 void initArray(char** pointerArr)
 {
