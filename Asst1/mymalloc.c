@@ -122,13 +122,20 @@ void defrag (char* myBlock)
 //return boolean true for success and failure
 boolean myfree(void* target, char* file, int line)
 {	
+	if (!isInitialized)
+		{
+			initArray(myBlock);
+			isInitialized = TRUE;
+		}
 	unsigned short* targetFree = (unsigned short*) (target  - 2*sizeof(char));
 	unsigned short* ptr = (unsigned short*) myBlock;
 	unsigned short distance = 0;
 	while (targetFree != ptr && distance < 5000)
 	{
-		distance += (*ptr) - (*ptr %2) + 1;
-		ptr += *ptr - *ptr%2 + 1;
+		distance += 1+ *ptr - (*ptr) %2;
+		printf("%p\n", (void *)ptr);
+		ptr += (*(ptr)- *ptr%2 + 1)/2;
+		printf("%p\n", (void *)ptr);
 	}
 	//here either targetFree = ptr or distance > 5000
 	if (targetFree == ptr)
@@ -139,6 +146,7 @@ boolean myfree(void* target, char* file, int line)
 			return TRUE;
 		}
 	}
+	printf("ERROR: INVALID ADDRESS, CANNOT FREE\n");
 	return FALSE;
 }
 
@@ -174,7 +182,6 @@ void* mallocDetails(size_t numRequested, char* index)
 	*(short*)index = (short)(numRequested+1);
 	return (void*)(index+2*sizeof(char));
 }
-
 
 
 
