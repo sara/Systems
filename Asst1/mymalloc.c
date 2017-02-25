@@ -27,10 +27,16 @@ void* mymalloc (size_t numRequested, char* file, int line)
 	{
 		defrag(myBlock);
 		thatSoMeta = findSpace(myBlock, numRequested);
-		if(thatSoMeta == 0)
-			return 0;
 	}
-	return mallocDetails(numRequested, thatSoMeta);	
+	if(thatSoMeta == NULL)
+	{
+		printf("INSUFFICIENT AVAILABLE MEMORY - ALLOC DENIED \n");
+		return 0;
+	}
+	
+	void* test = mallocDetails(numRequested, thatSoMeta);
+	//printf("num allocated: %hu \n", *(short*)(test));
+	return test + 2;//mallocDetails(numRequested, thatSoMeta);	
 }
 //find whether there is adequate free space in block 
 boolean checkSpace(char* myBlock, size_t numReq)
@@ -76,6 +82,7 @@ char* findSpace(char* myBlock, unsigned short numReq)
 		//TOOK AWAY THE PLUS TWO HERE
 		if((currMeta%2==0) && (currMeta>=numReq))
 		{
+			printf("head block: %hu\n", currMeta);
 			return myBlock;
 		}
 		else
@@ -86,9 +93,10 @@ char* findSpace(char* myBlock, unsigned short numReq)
 			myBlock += increment*sizeof(char);
 			//increment distanace traveled
 			consumed += increment;
+			printf("consumed: %hu \n", consumed);
 		}
 	}
-	return FALSE;
+	return NULL;
 } 
 
 //find contiguous blocks of free space and combine them to a single large block
@@ -125,35 +133,30 @@ void defrag (char* myBlock)
 //return boolean true for success and failure
 boolean myfree(void* target, char* file, int line)
 {
-	
-	printf("Block head: %p\n", (void *)myBlock);
 	if (!isInitialized)
 		{
+	//		printf("reinitialized\n");
 			initArray(myBlock);
 			isInitialized = TRUE;
 		}
-	printf ("%hu \n", *(short*)(target-2));
-//	printf("%p\n", target-2);
+//	printf("in target: %p \n", (void*)target);
+//	printf ("target: %hu \n", *(unsigned short*)(target-2));
 	void* targetFree = target - 2;
-//	printf("TARGET FREE: %p \n", (void*)targetFree+2*sizeof(char));
 	void* ptr = (void*)myBlock;
 	unsigned short distance = 0;
 	while (targetFree != ptr && distance < 5000)
 	{
 		distance += 2+ *(unsigned short*)ptr - (*(unsigned short*)ptr) %2;
-		printf("DISTANCE: %hu \n", distance);
-//		printf("POINTER CONTENT: %hu \n", *ptr);
-//		printf("%p\n", (void *)ptr);
+//		printf("DISTANCE: %hu \n", distance);
 		ptr += *(unsigned short*)ptr +2 - (*(unsigned short*)ptr)%2;
-	
-	//	ptr += (*(ptr)- *ptr%2 + 1)/2;
 	}
 	//here either targetFree = ptr or distance > 5000
 	if (targetFree == ptr)
 	{
-	//	printf("TARGET FREE: %hu \n", *targetFree);
+	//	printf("%hu \n", *(unsigned short*)ptr);
 		if ((*(unsigned short*)ptr) %2 == 1)
 		{
+//			printf("merp\n");
 			*(unsigned short*)ptr -= 1;
 			return TRUE;
 		}
@@ -171,12 +174,17 @@ void initArray(char* myBlock)
 		myBlock[i] = '0';
 	}
 	*(unsigned short*)myBlock = (unsigned short)4998;
+	isInitialized = TRUE;
 }
+
 size_t validateInput(size_t numRequested)
 {
 	//must be within array bounds
 	if (numRequested<=0 || numRequested>4998)
-		return 0;
+		{
+			printf("INVALID REQUEST, CANNOT ALLOC\n");
+			return 0;
+		}
 	//allocation must be even
 	return (numRequested + numRequested%2);
 }
@@ -185,16 +193,16 @@ void* mallocDetails(size_t numRequested, char* index)
 {
 	//amt of free space @ current index
 	short total = *(short*)index;
-	printf("num requested: %zu \n", numRequested);
-	//printf("INDEX RETURN : %hu \n", *(short*)index);
 	//check for remainder to set index immediately following
-	if (total - numRequested>0)
+	if (total - (numRequested+2)>0)
 		{
-			*(short*)(index + (numRequested+2)*sizeof(char)) = total - (numRequested+2);
+			*((short*)index + (numRequested/2)) = total -numRequested;
+			//*(short*)(index + (numRequested+2)*sizeof(char)) = total - (numRequested+2);
 		}
+
 	//set given index to indicate num allocated
 	*(short*)index = (short)(numRequested+1);
-	return (void*)(index+2*sizeof(char));
+	return (void*)index;
 }
 
 
