@@ -13,6 +13,7 @@ void* mymalloc (size_t numRequested, char* file, int line)
 		{
 			initArray(myBlock);
 		}
+	//ensure that the input is even and not less than 1 or over 4998
 	numRequested = validateInput(numRequested);
 	char* thatSoMeta;
 	//might want to include error message here
@@ -72,7 +73,8 @@ char* findSpace(char* myBlock, unsigned short numReq)
 	{
 		currMeta = *(unsigned short*)myBlock;
 		//return pointer to start of META (not user!) data block if sufficient size free block is found
-		if((currMeta%2==0) && (currMeta>=numReq+2))
+		//TOOK AWAY THE PLUS TWO HERE
+		if((currMeta%2==0) && (currMeta>=numReq))
 		{
 			return myBlock;
 		}
@@ -80,6 +82,7 @@ char* findSpace(char* myBlock, unsigned short numReq)
 		{
 			//catches both free and used jumps through mod arith
 			unsigned short increment = currMeta - (currMeta%2) + 2;
+			printf("currMeta: %hu \t increment: %hu \n", currMeta, increment);
 			myBlock += increment*sizeof(char);
 			//increment distanace traveled
 			consumed += increment;
@@ -121,28 +124,37 @@ void defrag (char* myBlock)
 
 //return boolean true for success and failure
 boolean myfree(void* target, char* file, int line)
-{	
+{
+	
+	printf("Block head: %p\n", (void *)myBlock);
 	if (!isInitialized)
 		{
 			initArray(myBlock);
 			isInitialized = TRUE;
 		}
-	unsigned short* targetFree = (unsigned short*) (target  - 2*sizeof(char));
-	unsigned short* ptr = (unsigned short*) myBlock;
+	printf ("%hu \n", *(short*)(target-2));
+//	printf("%p\n", target-2);
+	void* targetFree = target - 2;
+//	printf("TARGET FREE: %p \n", (void*)targetFree+2*sizeof(char));
+	void* ptr = (void*)myBlock;
 	unsigned short distance = 0;
 	while (targetFree != ptr && distance < 5000)
 	{
-		distance += 1+ *ptr - (*ptr) %2;
-		printf("%p\n", (void *)ptr);
-		ptr += (*(ptr)- *ptr%2 + 1)/2;
-		printf("%p\n", (void *)ptr);
+		distance += 2+ *(unsigned short*)ptr - (*(unsigned short*)ptr) %2;
+		printf("DISTANCE: %hu \n", distance);
+//		printf("POINTER CONTENT: %hu \n", *ptr);
+//		printf("%p\n", (void *)ptr);
+		ptr += *(unsigned short*)ptr +2 - (*(unsigned short*)ptr)%2;
+	
+	//	ptr += (*(ptr)- *ptr%2 + 1)/2;
 	}
 	//here either targetFree = ptr or distance > 5000
 	if (targetFree == ptr)
 	{
-		if (*ptr %2 == 1)
+	//	printf("TARGET FREE: %hu \n", *targetFree);
+		if ((*(unsigned short*)ptr) %2 == 1)
 		{
-			*ptr -= 1;
+			*(unsigned short*)ptr -= 1;
 			return TRUE;
 		}
 	}
@@ -173,6 +185,8 @@ void* mallocDetails(size_t numRequested, char* index)
 {
 	//amt of free space @ current index
 	short total = *(short*)index;
+	printf("num requested: %zu \n", numRequested);
+	//printf("INDEX RETURN : %hu \n", *(short*)index);
 	//check for remainder to set index immediately following
 	if (total - numRequested>0)
 		{
