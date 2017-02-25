@@ -109,6 +109,8 @@ void grindD()
 			size = (rand() %65) + 1;
 			myPointers[index] = (char*)malloc(size*sizeof(char));
 			index ++;
+			if (size%2==1)
+				size++;
 			spaceUsed += size+2;
 		}
 		else
@@ -121,14 +123,17 @@ void grindD()
 			spaceUsed -= *myPointers[j] +2;
 			myPointers[j] = NULL;
 		}
+		printf("NumMallocs: %i, space used: %i\n", numMallocs, spaceUsed); 
 	}
 	j = 0;
 	while (spaceUsed >0)
 	{
+		
 		if (myPointers[j] != NULL)
 		{
 			spaceUsed -= *myPointers[j] + 2;
 			myPointers[j] = NULL;
+			j++;
 		}
 	}
 }
@@ -142,9 +147,9 @@ void grindE()
 
 void main(int argc, char * argv[])
 {
-	grindA();
-	//grindB();
-	//grindC();
-	//grindD();
+//	grindA();
+//	grindB();
+//	grindC();
+	grindD();
 }
 
