@@ -98,29 +98,32 @@ void grindD()
 	int index = 0;
 	int j;
 	int numMallocs = 0;
-	int spaceUsed = 0;
+	int spaceUsed = 2;
 	while (numMallocs < 1000)
 	{
+		//odd indicates malloc, even indicates free
 		operation = rand() % 2;
 		//if malloc
 		if (operation == 1 && spaceUsed < 5000)
 		{
 			numMallocs ++;
+			//generate a pointer between 1 and 65 bytes
 			size = (rand() %65) + 1;
-			myPointers[index] = (char*)malloc(size*sizeof(char));
 			index ++;
 			if (size%2==1)
 				size++;
+			//save the pointer in an array
+			myPointers[index] = (char*)malloc(size*sizeof(char));
 			spaceUsed += size+2;
 		}
 		else
 		{
 			j=0;
-			while (myPointers[j] !=NULL)
+			while (myPointers[j] == NULL)
 			{
 				j++;
 			}
-			spaceUsed -= *myPointers[j] +2;
+			spaceUsed -= sizeof(myPointers[j]) +2;
 			myPointers[j] = NULL;
 		}
 		printf("NumMallocs: %i, space used: %i\n", numMallocs, spaceUsed); 
