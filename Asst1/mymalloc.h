@@ -18,7 +18,7 @@ char* findSpace(char* myBlock, unsigned short numReq);
 //merges contiguous blocks of free memory into a single large block 
 void defrag(char* myBlock);
 
-boolean myfree (char* p, char* file, int line);
+boolean myfree (void* p, char* file, int line);
 
 void* mallocDetails(size_t numRequested, char* index);
 

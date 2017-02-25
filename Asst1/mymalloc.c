@@ -120,26 +120,26 @@ void defrag (char* myBlock)
 }
 
 //return boolean true for success and failure
-boolean myfree(char* target, char* file, int line)
+boolean myfree(void* target, char* file, int line)
 {	
-	unsigned short* targetFree = (unsigned short*) (target  - 2);
+	unsigned short* targetFree = (unsigned short*) (target  - 2*sizeof(char));
 	unsigned short* ptr = (unsigned short*) myBlock;
 	unsigned short distance = 0;
 	while (targetFree != ptr && distance < 5000)
 	{
-		distance += (*ptr) - (*ptr %2 + 2);
-		ptr += *ptr - *ptr%2 + 2;
+		distance += (*ptr) - (*ptr %2) + 1;
+		ptr += *ptr - *ptr%2 + 1;
 	}
 	//here either targetFree = ptr or distance > 5000
 	if (targetFree == ptr)
 	{
 		if (*ptr %2 == 1)
 		{
-			(*ptr%2) -= 1;
+			*ptr -= 1;
 			return TRUE;
 		}
 	}
-	return FALSE∫;
+	return FALSE;
 }
 
 //set initial amount of free space and zero out the array in case of garbage null terminators

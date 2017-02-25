@@ -16,7 +16,7 @@ void initMyPointers(char** pointerArr)
 void grindA()
 {
         char * myPointers[1000];
-		initArr(myPointers);
+		initMyPointers(myPointers);
         int i = 0;
         for(i = 0; i<1000; i++)
 		{
