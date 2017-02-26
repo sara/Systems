@@ -3,9 +3,6 @@
 #include <stdio.h>
 
 boolean isInitialized = FALSE;
-//how is input happening? assuming preprocessing will take care of it, i.e. don't need main method
-//ALL FREE SPACE SHOULD INDICATE HOW MUCH COMES AFTER IT
-//HOW CAN I FILL THE ARRAY METADATA SLOT!?
 
 void* mymalloc (size_t numRequested, char* file, int line)
 {
@@ -19,12 +16,13 @@ void* mymalloc (size_t numRequested, char* file, int line)
 	//might want to include error message here
 	if (numRequested == 0)
 		return 0;
-	if (checkSpace)
+	if (checkSpace(myBlock, numRequested))
 	{
 		thatSoMeta = findSpace(myBlock, numRequested);
 	}
 	else
 	{
+		printf("defragging\n");
 		defrag(myBlock);
 		thatSoMeta = findSpace(myBlock, numRequested);
 	}
@@ -41,7 +39,8 @@ void* mymalloc (size_t numRequested, char* file, int line)
 //find whether there is adequate free space in block 
 boolean checkSpace(char* myBlock, size_t numReq)
 {
-        //tracks how far we've gone, loops terminates after 5000 bytes
+		printf("checkspace...?\n");	
+		//tracks how far we've gone, loops terminates after 5000 bytes
         unsigned short consumed = 0;
         //keeps trace of the current value in the metadata that we are currently looking at in the loop
         unsigned short currMeta = 0;
@@ -50,7 +49,8 @@ boolean checkSpace(char* myBlock, size_t numReq)
 		{
                 //takes the value of currMeta for this iteration of loop
                 currMeta = *(unsigned short*)myBlock;
-                //if you find a portion of memory which is free and sufficiently large then success
+                printf("currMeta: %hu\n", currMeta);
+				//if you find a portion of memory which is free and sufficiently large then success
                 if((currMeta%2)==0 && (currMeta>=numReq))
 				{
                     return TRUE;
@@ -58,18 +58,22 @@ boolean checkSpace(char* myBlock, size_t numReq)
 				else
 				{
         			//this calculation catches both free and used jumps (because of mod arith)
-                    unsigned short increment = currMeta - (currMeta%2) + 2;
+                    
+//					printf("currMeta: %i, numReq: %i \n", currMeta, numReq);
+					unsigned short increment = currMeta - (currMeta%2) + 2;
         			//increment block to new position (CHECK to make sure this only affects myBlock inside this method
                     myBlock += increment*sizeof(char);
       				//and increment distanceTraveled 
-                    consumed += increment*sizeof(char);;
+                    consumed += increment*sizeof(char);
                 }
+				printf("consumed: %hu\n", consumed);
         }
+		printf(":(\n");
 		return FALSE;
 }
 //returns pointer to first incidence of sufficiently large block
 char* findSpace(char* myBlock, unsigned short numReq)
-{	
+{
 	//tracks how far down the array has been traveled
 	unsigned short consumed = 0;
 	//keeps trace of value contained in current metadata block
@@ -82,18 +86,18 @@ char* findSpace(char* myBlock, unsigned short numReq)
 		//TOOK AWAY THE PLUS TWO HERE
 		if((currMeta%2==0) && (currMeta>=numReq))
 		{
-			printf("head block: %hu\n", currMeta);
+//			printf("head block: %hu\n", currMeta);
 			return myBlock;
 		}
 		else
 		{
 			//catches both free and used jumps through mod arith
 			unsigned short increment = currMeta - (currMeta%2) + 2;
-			printf("currMeta: %hu \t increment: %hu \n", currMeta, increment);
+//			printf("currMeta: %hu \t increment: %hu \n", currMeta, increment);
 			myBlock += increment*sizeof(char);
 			//increment distanace traveled
 			consumed += increment;
-			printf("consumed: %hu \n", consumed);
+			//printf("consumed: %hu \n", consumed);
 		}
 	}
 	return NULL;
@@ -102,6 +106,7 @@ char* findSpace(char* myBlock, unsigned short numReq)
 //find contiguous blocks of free space and combine them to a single large block
 void defrag (char* myBlock)
 {
+	printf("defrag\n");
 	unsigned short distanceTraveled = 0;
 	unsigned short* current = (short*) myBlock;
 	unsigned short* probe = (short*) myBlock;
@@ -135,7 +140,6 @@ boolean myfree(void* target, char* file, int line)
 {
 	if (!isInitialized)
 		{
-	//		printf("reinitialized\n");
 			initArray(myBlock);
 			isInitialized = TRUE;
 		}
@@ -189,25 +193,16 @@ size_t validateInput(size_t numRequested)
 	return (numRequested + numRequested%2);
 }
 
-void* mallocDetails(size_t numRequested, char* index)
+void* mallocDetails(size_t numReq, char* index)
 {
-	//amt of free space @ current index
-	short total = *(short*)index;
-	//check for remainder to set index immediately following
-	if (total - (numRequested+2)>0)
-		{
-			*((short*)index + (numRequested/2)) = total -numRequested;
-			//*(short*)(index + (numRequested+2)*sizeof(char)) = total - (numRequested+2);
-		}
+	unsigned short total = *(unsigned short*)index;
+	if (total > numReq)
+	{
+		unsigned short* leftovers = (unsigned short*) (index+2+numReq*sizeof(char));
+		*leftovers = total - (numReq+2);
+	}
 
-	//set given index to indicate num allocated
-	*(short*)index = (short)(numRequested+1);
+	*(unsigned short*)index = numReq+1;
+	printf("remaining free space: %hu \n", *(unsigned short*)(index+2+numReq*(sizeof(char))));
 	return (void*)index;
 }
-
-
-
-
-
-
-
