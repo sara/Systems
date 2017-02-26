@@ -22,8 +22,8 @@ void* mymalloc (size_t numRequested, char* file, int line)
 	}
 	else
 	{
-		printf("defragging\n");
 		defrag(myBlock);
+		printf("defragged\n");
 		thatSoMeta = findSpace(myBlock, numRequested);
 	}
 	if(thatSoMeta == NULL)
@@ -39,7 +39,6 @@ void* mymalloc (size_t numRequested, char* file, int line)
 //find whether there is adequate free space in block 
 boolean checkSpace(char* myBlock, size_t numReq)
 {
-		printf("checkspace...?\n");	
 		//tracks how far we've gone, loops terminates after 5000 bytes
         unsigned short consumed = 0;
         //keeps trace of the current value in the metadata that we are currently looking at in the loop
@@ -49,7 +48,6 @@ boolean checkSpace(char* myBlock, size_t numReq)
 		{
                 //takes the value of currMeta for this iteration of loop
                 currMeta = *(unsigned short*)myBlock;
-                printf("currMeta: %hu\n", currMeta);
 				//if you find a portion of memory which is free and sufficiently large then success
                 if((currMeta%2)==0 && (currMeta>=numReq))
 				{
@@ -66,9 +64,7 @@ boolean checkSpace(char* myBlock, size_t numReq)
       				//and increment distanceTraveled 
                     consumed += increment*sizeof(char);
                 }
-				printf("consumed: %hu\n", consumed);
         }
-		printf(":(\n");
 		return FALSE;
 }
 //returns pointer to first incidence of sufficiently large block
@@ -106,32 +102,37 @@ char* findSpace(char* myBlock, unsigned short numReq)
 //find contiguous blocks of free space and combine them to a single large block
 void defrag (char* myBlock)
 {
-	printf("defrag\n");
-	unsigned short distanceTraveled = 0;
-	unsigned short* current = (short*) myBlock;
-	unsigned short* probe = (short*) myBlock;
-	unsigned short addup = 0;
-
-	while (distanceTraveled < 5000)
+	unsigned short consumed = 0;
+	unsigned short* home = (unsigned short*) myBlock;
+	unsigned short* probe = (unsigned short*) myBlock;
+	unsigned short toAdd = 0;
+	while(consumed < 5000)
 	{
-		addup = 0;
-		if(*current % 2 == 0)
+		while (consumed <5000 && *home%2 == 1)
 		{
-			probe += *(current) + 2;
-			while (*probe%2 == 0)
-			{
-				addup += *probe + 2;
-				probe += *probe + 2;
-			}
-
-			if (addup > 0)
-			{
-				*current += addup;
-			}
+			printf("odd\n");
+			consumed += 2+*home;
+			home += (1+*home)/2;
+			probe += (1+*probe)/2;
 		}
-		distanceTraveled = *current - (*current%2) + 2;
-		current += *current - (*current % 2) +2;
-		probe = current;
+
+		printf("probe: %hu\n", *probe);
+		printf("adding %hu\n", (2+*probe)/2);
+		probe += (2+*probe)/2;
+		printf("probe: %hu\n", *probe);
+		while(consumed<5000&&(*probe)%2==0)
+		{
+				printf("probe: %hu\n", *probe);
+				*home += 2+*probe;
+				consumed += 2+*probe;
+				probe += (2+*probe)/2;
+		}
+		printf("consumed: %hu, home: %hu\n", consumed, *home);
+		if (*(probe)%2 == 1)
+		{
+			home = probe;
+		}
+
 	}
 }
 
@@ -203,6 +204,6 @@ void* mallocDetails(size_t numReq, char* index)
 	}
 
 	*(unsigned short*)index = numReq+1;
-	printf("remaining free space: %hu \n", *(unsigned short*)(index+2+numReq*(sizeof(char))));
+	//printf("remaining free space: %hu \n", *(unsigned short*)(index+2+numReq*(sizeof(char))));
 	return (void*)index;
 }
