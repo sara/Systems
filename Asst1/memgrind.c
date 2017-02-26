@@ -13,9 +13,15 @@ void initMyPointers(char** pointerArr)
 	}
 }
 
-void grindA()
+float grindA()
 {
-        char * myPointers[1000];
+    struct timeval start, end;
+	float times[100];
+	int j;
+	char * myPointers[1000];
+	for(j=0; j<100: j++)
+	{
+		gettimeofday(&start, NULL);
 		initMyPointers(myPointers);
         int i = 0;
         for(i = 0; i<1000; i++)
@@ -26,18 +32,30 @@ void grindA()
 		{
                 free(myPointers[i]);
         }
+	gettimeofday(%end, NULL);
+	times[i] = (end.tv_sec*1000000+end.tv_usec)-(begin.tv_sec*1000000++begin.tv_usec);
+	float average = average(times);
+	return average;
+	}
 }
 
 void grindB()
 {
-
-        char * tmp = NULL;
-        int j = 0;
-        for(j = 0; j<1000; j++)
-		{
-                tmp = (char*)malloc(1*sizeof(char));
-                free(tmp);
+	struct timeval start, end;
+	float times [100];
+	int i, j;
+    char * tmp = NULL;
+    for (j=0; j<100, j++)
+	{
+		gettimeofday(&start, NULL);
+		for(i = 0; j<1000; j++)
+		{  
+			tmp = (char*)malloc(1*sizeof(char));
+       	 free(tmp);
 		}
+		gettimeofday(&end, NULL);
+
+	}
 }
 //randomly malloc or free 1000 times, making sure to malloc 1000 times and free all pointers
 void grindC()
@@ -178,14 +196,29 @@ void grindF()
 	}
 }
 
+float average(float [] arr)
+{
+	float i;
+	float sum = 0;
+	for (i=0; i<100; i++)
+	{
+		sum += arr[i];
+	}
+	return (sum/100);
+}
+
 void main(int argc, char * argv[])
 {
-	grindA();
-	grindB();
-	grindC();
-	grindD();
-	grindE();
-	grindF();
+int runtimes[6] = {0,0,0,0,0,0};
+
+	float ATime = grindA();
+	//i think %f prints a float but you should double check
+	printf("Grind A average time: %f", ATime);
+	//grindB();
+	//grindC();
+	//grindD();
+	//grindE();
+	//grindF();
 //  int x;
 //  free(&x);
 //	char * sara = (char*)malloc(4998*sizeof(char));

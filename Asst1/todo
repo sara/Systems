@@ -1,0 +1,8 @@
+1. compile with -Wall and get rid of all warning
+2. take out all comments
+3. print with errors (preprocessor)
+4. integrate time
+5. make makefile
+6. readme
+**test cases text file
+make sure header file has everything it needs
