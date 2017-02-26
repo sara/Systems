@@ -18,11 +18,11 @@ void grindA()
         char * myPointers[1000];
 		initMyPointers(myPointers);
         int i = 0;
-        for(i = 0; i<1000; i++)
+        for(i = 0; i<1; i++)
 		{
                 myPointers[i] = (char*)malloc(1*sizeof(char));
         }
-        for(i = 0; i<1000; i++)
+        for(i = 0; i<1; i++)
 		{
                 free(myPointers[i]);
         }
@@ -35,59 +35,74 @@ void grindB()
         int j = 0;
         for(j = 0; j<1000; j++)
 		{
-                char * tmp = (char*)malloc(1*sizeof(char));
+                tmp = (char*)malloc(1*sizeof(char));
                 free(tmp);
 		}
 }
-
+//randomly malloc or free 1000 times, making sure to malloc 1000 times and free all pointers
 void grindC()
 {
 	char* myPointers[1000];
-	initMyPointers (myPointers);
-	int operation;
-	int countmalloc = 0;
-	int position = 0;
-	int counter = 1000;
+	int numFrees = 0;
+	int numMallocs = 0;
+	int numSaved = 0;
+	int arrIndex = 0;
+	int freeIndex = 0;
+	int op, i;
+	initMyPointers(myPointers);
 
-	while (counter>0)
+	for(i=0; i<1000; i++)
 	{
-		if(countmalloc >= counter)
-		{
-			operation = 1;
-		}
-		else if (countmalloc == 0)
-		{
-			operation = 0;
-		}
-		else
-		{
-			operation = rand()%2;
-		}
-
-		switch(operation)
+		printf("i = %i\n",i);
+		op = rand();
+		if(numSaved == 0)
+			op = 0;
+		
+		switch(op%2)
 		{
 			case 0:
-			{
-				countmalloc ++;
-				myPointers[position] = (char*) malloc (1*sizeof(char));
-				position++;
-				break;
-			}
+			numMallocs++;
+			printf("arrIndex: %i\n", arrIndex);
+			myPointers[arrIndex] = (char*)malloc(sizeof(char));
+			arrIndex ++;
+			numSaved++;
+			break;
+
 			case 1:
-			{
-				position --;
-				free(myPointers[position]);
-				countmalloc --;
-				break;
-			}
+			printf("arrIndex: %i\n", arrIndex);
+			numFrees++;
+			free(myPointers[freeIndex]);
+			freeIndex++;
+			numSaved --;
+			break;
+
 			default:
-			{
-				printf("error");
-				return;
-			}
-			counter --;
+			printf("ERROR IN GRINDC\n");
 		}
 	}
+		while(numFrees<1000)
+		{
+			op = rand();
+			if (op%2 == 0 && numMallocs == 1000)
+				op = 1;
+			else if (op%2 == 1 && numSaved ==0)
+				op =0;
+			if (op%2==1)
+			{
+				numFrees++;
+				free(myPointers[freeIndex]);
+				freeIndex ++;
+				numSaved --;
+			}
+			else
+			{
+				numMallocs ++;
+				myPointers[arrIndex] = (char*)malloc(sizeof(char));
+				arrIndex++;
+				numSaved ++;
+			}
+		}
+	printf("arrIndex = %i, freeIndex = %i\n", arrIndex, freeIndex);
 }
 
 void grindD()
@@ -98,22 +113,23 @@ void grindD()
 	int index = 0;
 	int j;
 	int numMallocs = 0;
+	int numFrees = 0;
 	int spaceUsed = 2;
 	while (numMallocs < 1000)
 	{
 		//odd indicates malloc, even indicates free
-		operation = rand() % 2;
+		operation = (rand()+1) % 2;
 		//if malloc
 		if (operation == 1 && spaceUsed < 5000)
 		{
 			numMallocs ++;
 			//generate a pointer between 1 and 65 bytes
 			size = (rand() %65) + 1;
-			index ++;
-			if (size%2==1)
+			char* p = (char*)malloc(size*sizeof(char));
+			if (size%2 == 1)
 				size++;
-			//save the pointer in an array
-			myPointers[index] = (char*)malloc(size*sizeof(char));
+			myPointers[index] = p;
+			index ++;
 			spaceUsed += size+2;
 		}
 		else
@@ -124,6 +140,8 @@ void grindD()
 				j++;
 			}
 			spaceUsed -= sizeof(myPointers[j]) +2;
+			if (sizeof(myPointers[j])%2 == 1)
+				spaceUsed --;
 			myPointers[j] = NULL;
 		}
 		printf("NumMallocs: %i, space used: %i\n", numMallocs, spaceUsed); 
@@ -139,6 +157,7 @@ void grindD()
 			j++;
 		}
 	}
+	printf("final space used: %i\n", spaceUsed); 
 }
 //start at mallocing 5000, then decrement by two, alternating malloc and free each time
 
@@ -152,7 +171,9 @@ void main(int argc, char * argv[])
 {
 //	grindA();
 //	grindB();
-//	grindC();
-	grindD();
+	grindC();
+//	grindD();
+//  int x;
+//  free(&x);
 }
 

@@ -116,10 +116,10 @@ void defrag (char* myBlock)
 			probe += (1+*probe)/2;
 		}
 
-		printf("probe: %hu\n", *probe);
-		printf("adding %hu\n", (2+*probe)/2);
+		//printf("probe: %hu\n", *probe);
+		//printf("adding %hu\n", (2+*probe)/2);
 		probe += (2+*probe)/2;
-		printf("probe: %hu\n", *probe);
+		//printf("probe: %hu\n", *probe);
 		while(consumed<5000&&(*probe)%2==0)
 		{
 				printf("probe: %hu\n", *probe);
@@ -127,7 +127,7 @@ void defrag (char* myBlock)
 				consumed += 2+*probe;
 				probe += (2+*probe)/2;
 		}
-		printf("consumed: %hu, home: %hu\n", consumed, *home);
+		//printf("consumed: %hu, home: %hu\n", consumed, *home);
 		if (*(probe)%2 == 1)
 		{
 			home = probe;
