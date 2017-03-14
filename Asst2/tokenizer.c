@@ -116,7 +116,6 @@ hashTable* makeMasterTable(recordNode* list, int size, char* fileName)
         //if node is to be inserted at front of list
 		if (hTable->table[index] == NULL || sortalnum(hTable->table[index]->token, node->token)<0)    
 			{
-				printf("first: %s\n", node->token); 
                 node->next = hTable->table[index];
                 hTable->table[index] = node;
 			}
@@ -133,12 +132,10 @@ hashTable* makeMasterTable(recordNode* list, int size, char* fileName)
                 }
 				if (curr!=NULL && sortalnum(curr->token, node->token)==0)
 				{
-					printf("DUPLICATE\n");
 					curr -> count ++;
 				}
 				else
                 {
-					printf("second: %s\n", node->token);
 					node->next = curr;
                 	prev->next = node;
             	}
@@ -146,7 +143,6 @@ hashTable* makeMasterTable(recordNode* list, int size, char* fileName)
 			list = list->next;
 			
 	}
-	printf("COUNT: %i\n", count);
     return hTable;
 }
 
@@ -154,22 +150,24 @@ hashTable* makeMasterTable(recordNode* list, int size, char* fileName)
 void outputTokens(hashTable* masterTable, char* outputFile)
 {
 	int i;
-	recordNode* head, *curr, *prev;
+	recordNode* head;
+	recordNode* curr;
+	recordNode* prev;
 	char* currTok;
 	int maxNum;
 	//traverse entire master hash Table
-	for (i=0; i<sizeof(masterTable)/sizeof(recordNode); i++)
+	for (i=0; i<masterTable->length; i++)
 	{	
 		head = masterTable->table[i];
 		//collect all different token lists from each index
-		while (masterTable->table[i]!=NULL)
+		while (head!=NULL)
 		{
-			curr = masterTable->table[i];
-			prev = masterTable->table[i];
-			currTok = masterTable->table[i]->token;
+			curr = head;
+			prev = curr;
+			currTok = head->token;
 			maxNum = curr->count;
 			//keep traveling down the line as long as the token is the same
-			while (sortalnum(currTok, curr->token)==0)
+			while (curr!= NULL && sortalnum(currTok, curr->token)==0)
 			{
 				if (curr->count>maxNum)
 					{
@@ -179,9 +177,25 @@ void outputTokens(hashTable* masterTable, char* outputFile)
 				curr = curr->next;
 			}
 			//cut list when you hit a new token; move the next stream of tokens in the same index up to the top of the index
+			if(curr != NULL)
+			{
+				recordNode* temp = makeNode(curr->fileName, curr->token);
+				temp ->count = curr->count;
+				temp ->next = curr->next;
+				masterTable->table[i] = temp;
+			}
+			else
+			{
+				masterTable->table[i] = NULL;
+			}
 			prev->next = NULL;
-			masterTable->table[i] = curr;
-			scatterTokens(head, maxNum, outputFile);
+			
+			if(head!=NULL)
+			{
+				printLL(head);
+			}
+			head = masterTable->table[i];
+			//scatterTokens(head, maxNum, outputFile);
 		}
 	}
 }
@@ -440,10 +454,7 @@ int main (int argc, char** argv)
 	//recordNode* head = tokenize(fp, argv[2]);
 	recordNode* head = otherTokenize(inputString, "test.txt");
 	hashTable* myTable = makeMasterTable(head, 36, "test.txt");
-	printTable(myTable);
-/*	printf("completed\n");
-	//outputTokens(myTable, argv[1]);
-	*/
+	outputTokens(myTable, "output.txt");
 	return 0;
 }
 
