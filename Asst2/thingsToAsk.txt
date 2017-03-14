@@ -1,0 +1,2 @@
+why didn't opening the file in the tokenize function work? Only works in main
+how tf to use fscanf - could i use it to grab tokens here?
