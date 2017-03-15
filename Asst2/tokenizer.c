@@ -155,60 +155,59 @@ void outputTokens(hashTable* masterTable, char* outputFile)
 	recordNode* prev;
 	char* currTok;
 	int maxNum;
-	//traverse entire master hash Table
+	
 	for (i=0; i<masterTable->length; i++)
-	{	
+	{
 		head = masterTable->table[i];
-		//collect all different token lists from each index
-		while (head!=NULL)
+		while(head!=NULL)
 		{
 			curr = head;
 			prev = curr;
 			currTok = head->token;
 			maxNum = curr->count;
-			//keep traveling down the line as long as the token is the same
-			while (curr!= NULL && sortalnum(currTok, curr->token)==0)
+
+			while (curr!=NULL && sortalnum(currTok, curr->token) ==0)
 			{
-				if (curr->count>maxNum)
-					{
-						maxNum = curr->count;
-					}
+				if(curr->count > maxNum)
+				{
+					maxNum = curr->count;
+				}
 				prev = curr;
 				curr = curr->next;
 			}
-			//cut list when you hit a new token; move the next stream of tokens in the same index up to the top of the index
-			if(curr != NULL)
+			
+			if (curr!= NULL)
 			{
 				recordNode* temp = makeNode(curr->fileName, curr->token);
-				temp ->count = curr->count;
-				temp ->next = curr->next;
-				masterTable->table[i] = temp;
+				temp -> count = curr->count;
+				temp -> next = curr -> next;
+				masterTable -> table[i] = temp;
 			}
 			else
 			{
-				masterTable->table[i] = NULL;
+				masterTable -> table[i] = NULL;
 			}
 			prev->next = NULL;
-			
 			if(head!=NULL)
 			{
-				printLL(head);
+				scatterTokens(head, maxNum, outputFile);
 			}
 			head = masterTable->table[i];
-			//scatterTokens(head, maxNum, outputFile);
 		}
 	}
 }
-
+//I'm like 99% sure this works
 hashTable* scatterTokens (recordNode* head, int size, char* outputFile)
 {
 	recordNode *curr, *prev;
 	hashTable* myTable = makeHashTable(size);
 	while (head!=NULL)
 	{
-		if(myTable->table[head->count-1]!=NULL)
+		if(myTable->table[head->count-1]==NULL)
 		{
-			myTable->table[head->count-1] = head;
+			recordNode* temp = makeNode(head->fileName, head->token);
+			temp->count = head -> count;
+			myTable->table[head->count-1] = temp;
 		}
 		else
 		{
@@ -220,15 +219,23 @@ hashTable* scatterTokens (recordNode* head, int size, char* outputFile)
 				prev = curr;
 				curr = curr->next;
 			}
-			prev -> next = head;
-			head = head->next;
+			if (prev == NULL)
+			{
+				printf("null prev\n");
+			}
+			recordNode* temp = makeNode(head->fileName, head->token);
+			temp->count = head->count;
+			myTable->table[head->count-1] = temp;
 		}
+		head = head->next;
 	}
 	outputTokenList(myTable, outputFile);
+	
 }
 
 void outputTokenList (hashTable* myTable, char* outputFile)
 {
+	boolean wordInitialized = FALSE;
 	if (!outputInitialized)
 	{
 		initializeOutput(outputFile);
@@ -236,22 +243,23 @@ void outputTokenList (hashTable* myTable, char* outputFile)
 	}
 	int i;
 	recordNode* curr, prev;
-	char* currTok;
-	FILE* file = fopen(outputFile, "w+");
-	boolean wordInitialized = FALSE;
-	for (i=0; i<sizeof(myTable)/sizeof(recordNode*); i++)
+	//FILE* file = fopen(outputFile, "w+");
+	for (i=0; i<myTable->length; i++)
 	{
 		curr = myTable->table[i];
-		currTok = curr->token;
 		while(curr!=NULL)
 		{
-			fprintf(file, "\t<word text = \"%s\">\n", curr->token);
-			while(sortalnum(currTok, curr->token)==0)
+			if(!wordInitialized)
 			{
-				fprintf(file, "\t\t<file name = \"%s\">%i</file>\n",curr->fileName, curr->count);
-				curr = curr-> next;
+				printf("\t<word text = \"%s\">\n", curr->token);
+				wordInitialized = TRUE;
 			}
-			fprintf(file, "\t</word>\n");
+		//	while(sortalnum(currTok, curr->token)==0)
+		//	{
+				printf("\t\t<file name = \"%s\">%i</file>\n",curr->fileName, curr->count);
+				curr = curr-> next;
+		//	}
+			printf("\t</word>\n");
 		}
 	}
 	closeOutput(outputFile);
@@ -259,17 +267,17 @@ void outputTokenList (hashTable* myTable, char* outputFile)
 //not sure if i have to pass argv here or not...feel like no
 void initializeOutput(char* outputFile)
 {
-	FILE* file = fopen(outputFile,"w+");
-	fputs("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n", file);
-	fputs("<fileIndex>\n", file);
-	fclose(file);
+	//FILE* file = fopen(outputFile,"w+");
+	printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	printf("<fileIndex>\n");
+	//fclose(file);
 }
 
 void closeOutput(char* outputFile)
 {
-	FILE* file = fopen(outputFile, "w+");
-	fputs("</fileIndex>", file);
-	fclose(file);
+//	FILE* file = fopen(outputFile, "w+");
+	printf("</fileIndex>");
+//	fclose(file);
 }
 void myToLower(recordNode* head)
 {
