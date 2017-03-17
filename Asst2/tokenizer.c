@@ -81,7 +81,7 @@ recordNode* tokenize(FILE* file, char* fileName)
 int checkInput(int argc)
 {
     //too few or too many inputs
-	printf("%i\n", argc);
+	//printf("%i\n", argc);
 	if(argc!=3)
         {
 		   printf("usage: pointersorter.c output_file target_file \n");
@@ -89,14 +89,14 @@ int checkInput(int argc)
         }
     return 0;
 }
-hashTable* makeMasterTable(recordNode* list, int size, char* fileName)
+hashTable* makeMasterTable(recordNode* list, char* fileName)
 {
 	int count =0;
     //slot in the hashTable according to leading letter
     int index;
     //leading letter
     char leading;
-    hashTable* hTable = makeHashTable(size);
+    hashTable* hTable = makeHashTable(36);
 	while(list!=NULL)
     {
 		count ++;
@@ -147,7 +147,7 @@ hashTable* makeMasterTable(recordNode* list, int size, char* fileName)
 }
 
 //collects tokens, scatters into individual hash tables, and outputs them to designated output file
-void outputTokens(hashTable* masterTable, char* outputFile)
+void outputTokens(hashTable* masterTable, FILE* outputFile)
 {
 	int i;
 	recordNode* head;
@@ -195,9 +195,10 @@ void outputTokens(hashTable* masterTable, char* outputFile)
 			head = masterTable->table[i];
 		}
 	}
+    closeOutput(outputFile);
 }
 //I'm like 99% sure this works
-hashTable* scatterTokens (recordNode* head, int size, char* outputFile)
+hashTable* scatterTokens (recordNode* head, int size, FILE* outputFile)
 {
 	recordNode *curr, *prev;
 	hashTable* myTable = makeHashTable(size);
@@ -219,10 +220,10 @@ hashTable* scatterTokens (recordNode* head, int size, char* outputFile)
 				prev = curr;
 				curr = curr->next;
 			}
-			if (prev == NULL)
-			{
-				printf("null prev\n");
-			}
+			//if (prev == NULL)
+			//{
+			//	printf("null prev\n");
+			//}
 			recordNode* temp = makeNode(head->fileName, head->token);
 			temp->count = head->count;
 			myTable->table[head->count-1] = temp;
@@ -232,8 +233,8 @@ hashTable* scatterTokens (recordNode* head, int size, char* outputFile)
 	outputTokenList(myTable, outputFile);
 	
 }
-
-void outputTokenList (hashTable* myTable, char* outputFile)
+//char* outputFile
+void outputTokenList (hashTable* myTable, FILE* outputFile)
 {
 	boolean wordInitialized = FALSE;
 	if (!outputInitialized)
@@ -243,7 +244,6 @@ void outputTokenList (hashTable* myTable, char* outputFile)
 	}
 	int i;
 	recordNode* curr, prev;
-	//FILE* file = fopen(outputFile, "w+");
 	for (i=0; i<myTable->length; i++)
 	{
 		curr = myTable->table[i];
@@ -251,33 +251,28 @@ void outputTokenList (hashTable* myTable, char* outputFile)
 		{
 			if(!wordInitialized)
 			{
-				printf("\t<word text = \"%s\">\n", curr->token);
+				fprintf(outputFile, "\t<word text = \"%s\">\n", curr->token);
 				wordInitialized = TRUE;
 			}
 		//	while(sortalnum(currTok, curr->token)==0)
 		//	{
-				printf("\t\t<file name = \"%s\">%i</file>\n",curr->fileName, curr->count);
+				fprintf(outputFile, "\t\t<file name = \"%s\">%i</file>\n",curr->fileName, curr->count);
 				curr = curr-> next;
 		//	}
-			printf("\t</word>\n");
+			fprintf(outputFile, "\t</word>\n");
 		}
 	}
-	closeOutput(outputFile);
 }
 //not sure if i have to pass argv here or not...feel like no
-void initializeOutput(char* outputFile)
+void initializeOutput(FILE* outputFile)
 {
-	//FILE* file = fopen(outputFile,"w+");
-	printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-	printf("<fileIndex>\n");
-	//fclose(file);
+	fprintf(outputFile, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	fprintf(outputFile, "<fileIndex>\n");
 }
 
-void closeOutput(char* outputFile)
+void closeOutput(FILE* outputFile)
 {
-//	FILE* file = fopen(outputFile, "w+");
-	printf("</fileIndex>");
-//	fclose(file);
+	fprintf(outputFile, "</fileIndex>");
 }
 void myToLower(recordNode* head)
 {
@@ -454,15 +449,17 @@ int main (int argc, char** argv)
 {
 	boolean outputInitialized = FALSE;
 	
-	FILE* fp = fopen(argv[2], "r");
-	/*if(checkInput(argc) == 1)
+	FILE* inputFile = fopen(argv[2], "r");
+	if(checkInput(argc) == 1)
 	{
 		return 1;
-	}*/
-	//recordNode* head = tokenize(fp, argv[2]);
-	recordNode* head = otherTokenize(inputString, "test.txt");
-	hashTable* myTable = makeMasterTable(head, 36, "test.txt");
-	outputTokens(myTable, "output.txt");
+	}
+	recordNode* head = tokenize(inputFile, argv[2]);
+	hashTable* myTable = makeMasterTable(head, argv[1]);
+    FILE* outputFile = fopen(argv[1], "w+");
+	outputTokens(myTable, outputFile);
+//    fclose(inputFile);
+//    fclose(outputFile);
 	return 0;
 }
 

@@ -31,14 +31,14 @@ hashTable* makeHashTable(int size);
 recordNode* tokenize(FILE* file, char* fileName);
 
 int checkInput(int argc);
+//recordNode* head, int size, char* fileName)
+hashTable* makeMasterTable(recordNode* head, char* fileName);
+//char* outputFile
+void outputTokens(hashTable* masterTable, FILE* outputFile);
 
-hashTable* makeMasterTable(recordNode* head, int size, char* fileName);
+hashTable* scatterTokens(recordNode* head, int size, FILE* outputFile);
 
-void outputTokens(hashTable* masterTable, char* outputFile);
-
-hashTable* scatterTokens(recordNode* head, int size, char* outputFile);
-
-void outputTokenList(hashTable* myTable, char* outputFile);
+void outputTokenList(hashTable* myTable, FILE* outputFile);
 
 void initializeOutput();
 
