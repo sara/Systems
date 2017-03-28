@@ -46,7 +46,6 @@ int travdir (hashTable* myTable, const char * dir_name)
 
 		struct dirent * entry;
 		char * d_name;
-		printf("34\n");
 		entry = readdir(dir);
 		if(!entry)
 		{
@@ -55,9 +54,11 @@ int travdir (hashTable* myTable, const char * dir_name)
 		}
 		d_name = entry->d_name;
 		
-		switch(entry->d_type){
+		switch(entry->d_type)
+		{
 			
 			case DT_DIR:
+			{
 				if(strcmp(d_name,".") != 0 && strcmp(d_name, "..") != 0)
 				{
 					//need to EXTEND THE PATH for next travdir call, working dir doesn't change (think adir/ -> adir/bdir/....)
@@ -74,17 +75,31 @@ int travdir (hashTable* myTable, const char * dir_name)
 					travdir(myTable, path); //RECURSIVE STEP
 				}
 				break;
+			}
 			case DT_REG:
 				//regular files, need to check to ensure ".txt"....
-				targetFile = fopen(d_name, "r");
-				recordNode* tmp = tokenize(targetFile, d_name);	//  <-----------------------------HERE IS THE TOKENIZE CALL
+			{	
+				char pathname [256];
+				FILE* targetFile;
+				sprintf(pathname, "%s/%s", dir_name, d_name);
+				targetFile = fopen(pathname, "r");
+				if (targetFile!=NULL)
+				{
+						printf("hineini\n");
+						recordNode* tmp = tokenize(targetFile, d_name);	//  <-----------------------------HERE IS THE TOKENIZE CALL
 				//if(tableInitialized){
 					addToTable(tmp, myTable, d_name);
 				//}else{
 				//	myTable = makeMasterTable(tmp, d_name);
 				//	tableInitialized = TRUE;
 				//}
+				}
+				else
+				{
+					printf("%s\n", d_name);
+				}
 				break;
+			}
 			default:
 				printf("something is not right in ur switch statement");
 				return -2;
@@ -97,7 +112,6 @@ int travdir (hashTable* myTable, const char * dir_name)
 		return -3;
 	}
 }
-
 
 recordNode* makeNode(char* fileName, char* token)
 {
