@@ -42,7 +42,7 @@ hashTable* makeMasterTable(recordNode* head, char* fileName);
 //char* outputFile
 void outputTokens(hashTable* masterTable, FILE* outputFile);
 
-hashTable* scatterTokens(recordNode* head, int size, FILE* outputFile);
+void scatterTokens(recordNode* head, int size, FILE* outputFile);
 
 void outputTokenList(hashTable* myTable, FILE* outputFile);
 
