@@ -244,82 +244,34 @@ void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 			{
 				if (strcmp(curr->fileName, node->fileName)!=0)
 				{
-					//printf("original file %s, current file  %s, token = %s\n", curr->fileName, node->fileName, node->token);
-					node->next = curr->next;
-					curr -> next = node;
-					//printTable(hTable);
-				}	
-				else
-				{
-					curr -> count ++;
-					printf("%s\n", curr->token);
+								//HERE BEGINS THE NEW TERRITORY
+							if(curr->next != NULL && strcmp(curr->next->token, node->token)==0 && strcmp(curr->next->fileName, node->fileName)!=0){
+									curr->next->count++;
+							//free(node);
+							}else{
+							//printf("original file %s, current file  %s, token = %s\n", curr->fileName, node->fileName, node->token);
+							node->next = curr->next;
+							curr -> next = node;
+							//printTable(hTable);
+							}
+						}
+						else
+						{
+							curr -> count ++;
+							//free(node);
+							printf("%s\n", curr->token);
+						}
+					}
+					else
+						{
+						node->next = curr;
+						prev->next = node;
+						}
 				}
+				list = list->next;		
 			}
-			else
-               	{
-				node->next = curr;
-           		prev->next = node;
-     			}
-		}
-		list = list->next;		
-	}
+			//destroyList(list);
     return;
-}
-
-hashTable* makeMasterTable(recordNode* list, char* fileName)
-{
-	int count =0;
-    //slot in the hashTable according to leading letter
-    int index;
-    //leading letter
-    char leading;
-    hashTable* hTable = makeHashTable(36);
-	while(list!=NULL)
-	{
-		count ++;
-		leading = list->token[0];
-        	index = leading;
-		//alphas first in table, numerics second
-		if (!isalpha(leading))
-			{
-				index += 26;
-			}
-		else
-			{
-				index -=97;
-			}
-		//node to be inserted
-        recordNode* node = makeNode(fileName, list->token);
-        //if node is to be inserted at front of list
-		if (hTable->table[index] == NULL || sortalnum(hTable->table[index]->token, node->token)<0)    
-			{
-                node->next = hTable->table[index];
-                hTable->table[index] = node;
-			}
-        //if node is second node or later
-            else
-            {
-                recordNode* curr = hTable->table[index];
-                recordNode* prev = curr;
-            //while string to be inserted comes after existing strings
-                while(curr!=NULL && sortalnum(curr->token, node->token)>0)
-                {
-                    prev = curr;
-                    curr = curr->next;
-                }
-			if (curr!=NULL && sortalnum(curr->token, node->token)==0)
-			{
-				curr -> count ++;
-			}
-			else
-               		{
-				node->next = curr;
-               			prev->next = node;
-     			}
-		}
-		list = list->next;		
-	}
-    return hTable;
 }
 
 //collects tokens, scatters into individual hash tables, and outputs them to designated output file
@@ -371,12 +323,14 @@ void outputTokens(hashTable* masterTable, FILE* outputFile)
 			head = masterTable->table[i];
 		}
 	}
+	//destroyTable(masterTable);
     closeOutput(outputFile);
 }
 //I'm like 99% sure this works
 hashTable* scatterTokens (recordNode* head, int size, FILE* outputFile)
 {
-	recordNode *curr, *prev;
+	recordNode *curr, *prev, *toFree;
+	toFree = head;
 	hashTable* myTable = makeHashTable(size);
 	while (head!=NULL)
 	{
@@ -411,8 +365,8 @@ hashTable* scatterTokens (recordNode* head, int size, FILE* outputFile)
 		}
 		head = head->next;
 	}
+	//destroyList(toFree);
 	outputTokenList(myTable, outputFile);
-	
 }
 //char* outputFile
 void outputTokenList (hashTable* myTable, FILE* outputFile)
@@ -444,6 +398,7 @@ void outputTokenList (hashTable* myTable, FILE* outputFile)
 			fprintf(outputFile, "\t</word>\n");
 		}
 	}
+	destroyTable(myTable);
 }
 //not sure if i have to pass argv here or not...feel like no
 void initializeOutput(FILE* outputFile)
@@ -542,7 +497,7 @@ void destroyTable(hashTable* hTable)
     int i;
     recordNode* curr;
     recordNode* temp;
-    for (i=0; i<52; i++)
+	for (i=0; i<hTable->length; i++)
     {
         curr = hTable->table[i];
         while(curr!=NULL)
@@ -551,8 +506,8 @@ void destroyTable(hashTable* hTable)
             free(curr->token);
 			free(curr->fileName);
             free(curr);
-            curr = temp;
-        }
+            curr = temp;   		
+		}
     }
     free(hTable->table);
     free(hTable);
@@ -561,7 +516,7 @@ void destroyTable(hashTable* hTable)
 void destroyList(recordNode* head)
 {
     recordNode* temp;
-    while(head!=NULL)
+	while(head!=NULL)
     {
         temp = head->next;
         free(head->token);
@@ -569,6 +524,7 @@ void destroyList(recordNode* head)
         free(head);
         head = temp;
     }
+
 }
 
 void printLL(recordNode* head)
@@ -581,67 +537,21 @@ void printLL(recordNode* head)
 	}
 }
 
-recordNode* otherTokenize(char* inputString, char* fileName)
-{
-    recordNode* head = NULL;
-    char buffer [5000];
-    int index = 0;
-	int stringIndex=0;
-	recordNode* curr = NULL;
-
-	while (inputString[stringIndex] != '\0')
-    {
-		index = 0;
-		//skip all non-alphanumeric garbage
-		while (inputString[stringIndex]!='\0' && !isalnum(inputString[stringIndex]))
-		{
-			stringIndex++;
-		}
-		//get all alphanumerics in current token
-		while(inputString[stringIndex]!= '\0' && isalnum(inputString[stringIndex]))
-		{
-			buffer[index] = inputString[stringIndex]; //does this move the pointer every time?
-			index ++;
-			stringIndex++;
-		}
-		//make sure string is null terminated
-		buffer[index] = '\0';
-		char* currTok = malloc(sizeof(char)*index);
-		if(strlen(buffer)>0)
-        {
-		//+1?
-			memcpy(currTok, buffer, strlen(buffer));
-			if(head == NULL)
-       	 	{
-            	head = makeNode(fileName, currTok);
-            	curr = head;
-        	}
-        	else
-        	{
-            	curr->next = makeNode(fileName, currTok);
-            	curr = curr-> next;
-        	}
-    	}
-	}
-	myToLower(head);
-    return head;
-}
-
-/*int checkOverwrite(char** argv)
+int checkOverwrite(char** argv)
 {
 	int x = 1;
-	char* file = "./%s", argv[1];
+	char file [260];
+	file[0] = '.';
+	file[1] = '/';
+	memcpy(file+2, argv[1], strlen(argv[1])+1);
+	printf("%s\n", file);
 	if(access(file, F_OK) == 0)
 	{
 		printf("File already exists in directory. Do you wish you overwrite it? Enter 1 to proceed or 0 to exit\n");
 	x = getchar();
 	}
-	else
-	{
-		printf("fresh file\n");
-	}
 	return x;
-}*/
+}
 
 int main (int argc, char** argv)
 {
@@ -649,22 +559,17 @@ int main (int argc, char** argv)
 	hashTable* myTable = makeHashTable(36);
 
 		//FILE* inputFile = fopen(argv[2], "r");
-	if(checkInput(argc) == 0)
+	if(checkInput(argc) == 1)
 	{
-		return 0; //-1?
+		return 1; //-1?
 	}
-/*	if (checkOverwrite(argv)==0)
+	if (checkOverwrite(argv)==0)
 	{
 		return 0;
-	}*/
+	}
 	travdir(myTable, argv[2]);
-		//recordNode* head = tokenize(inputFile, argv[2]);
-		//hashTable* myTable = makeMasterTabl e(head, argv[1]);
-	//printTable(myTable);
 	FILE* outputFile = fopen(argv[1], "w+");
 	outputTokens(myTable, outputFile);
-		//fclose(inputFile);
-		//fclose(outputFile);
 	return 0;
 }
 
