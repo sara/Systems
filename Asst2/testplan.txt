@@ -1,0 +1,9 @@
+test case 1: read a single file, no repeated tokens
+
+test case 2: read a single with, including repeated tokens
+
+test case 3/4: read single file which already exists in current directory, with and without repeating tokens
+
+test case 5/6: read multiple files from within directory, with and without repeating tokens
+
+test case 7: read multiple files from within nested directories

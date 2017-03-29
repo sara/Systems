@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
+#include <dirent.h>
 
 typedef struct Node
 {
@@ -24,6 +24,9 @@ char* inputString = "this is a test sentence now^Im utilizing $%^&symbols$%^&*(*
 
 boolean outputInitialized = FALSE;
 
+void addToTable(recordNode* list, hashTable* hTable , char* fileName);
+void travdir (hashTable* hTable, const char * dir_name);
+
 recordNode* makeNode(char* fileName, char* token);
 
 hashTable* makeHashTable(int size);
@@ -31,12 +34,15 @@ hashTable* makeHashTable(int size);
 recordNode* tokenize(FILE* file, char* fileName);
 
 int checkInput(int argc);
+
 //recordNode* head, int size, char* fileName)
+
 hashTable* makeMasterTable(recordNode* head, char* fileName);
+
 //char* outputFile
 void outputTokens(hashTable* masterTable, FILE* outputFile);
 
-hashTable* scatterTokens(recordNode* head, int size, FILE* outputFile);
+void scatterTokens(recordNode* head, int size, FILE* outputFile);
 
 void outputTokenList(hashTable* myTable, FILE* outputFile);
 

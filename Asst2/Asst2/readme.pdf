@@ -1,0 +1,26 @@
+Step 1: recursively touch each file in directory structure
+Step 2: on each file, work within original, master hash table
+	- 36 slots, one for each letter of alphabet and digit
+	- lower case-ify each word, scatter into hash table by token
+	- if you find more than one of a single token in the same file, do not add a new node, but simply increment the corresponding node
+	- maintain multiple nodes of the same token only for different files
+Step 3: Keep going as long as MASTER hash table has entries
+	- collect items in groups from the master hash table, removing as you go, one token type at a time
+	- track maximum number of repeats per token
+	- create new SECONDARY hash table with as many indexes as maximum # of repeats
+	- scatter nodes into hash table with indexe # corresponding to # of repeats
+	- internally (by index) use sort alphabetically if you get different files with the same number of occurences
+	- when finished sorting, output results to output file and get rid of SECONDARY hash table
+
+Efficiency Analysis:
+Gathering tokens from files runs in O(c) time, where c is the number of characters in the file. To put these tokens into the master hash table, they must be inserted alphabetically, and so in the worst case, this could run in O(n^2), where n is the number of tokens; however, this is highly unlikely, as it could only occur if the tokens happen to have been initially arranged in perfect alphabetical order, all beginning with the same letter. 
+
+To collect the tokens from the master table for secondary hashing takes O(n) time, and to actually perform secondary hashing on a given group of tokens could, in the worst case, take O(t^2)time, where t is the number of tokens in a given group. Again, this is highly unlikely because it could only occur if, within that group, all files contain the same number of occurrences, and happen to have been arranged in the master table such that the file names are also already in alphabetical order.
+
+Finally, printing the results to the output file runs in O(nm) time, where n is the number of tokens and m is the total numbers of files, because in the worst case, every token appears in every file.
+
+
+Space Analysis:
+Collecting the tokens takes O(n) space, where n is the number of tokens; the master hash table is the same.
+
+Collecting the tokens for secondary hashing take O(n) space as well; the groups of tokens are collected as a linked list and bound by the number of occurrences of the token. Scattering them into a secondary table takes O(x) space, where x is the highest number of occurrences of a given token in any file. 
