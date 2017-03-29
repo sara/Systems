@@ -7,18 +7,13 @@
 #include <dirent.h>
 #include <unistd.h>
 
-//have to alter this to only exit if the INITIAL directory/file is not valid - it's ok to have
-//invalid ones later on, as long as you can still get some output
-int travdir (hashTable* myTable, const char * dir_name)
+void travdir (hashTable* myTable, const char * dir_name)
 {
-	
-//	printf("opening directory : %s\n",dir_name);
 
 	DIR * dir;
 	FILE* targetFile;
 
 	//printf("%s\t %d\n", dir_name, sizeof(dir_name));
-	boolean tableInitialized = FALSE;
 	dir = opendir(dir_name);
 	if(!dir)
 	{
@@ -35,12 +30,12 @@ int travdir (hashTable* myTable, const char * dir_name)
 			//printf("%s\n", buffer);
 			recordNode* tokenStream = tokenize(targetFile, buffer);
 			addToTable(tokenStream, myTable, buffer);
-			return 0;
+			return;
 		}
 		else
 		{
 			printf("Error: could not open %s - File or directory  may not exist\n ", dir_name);
-				return -1;
+				return;
 		}
 	}
 	while(dir !=NULL)
@@ -70,7 +65,7 @@ int travdir (hashTable* myTable, const char * dir_name)
 					if(pathlength > 255)
 					{
 						printf("Path length is too long error");
-						return -4;
+						return;
 					}
 					//strcat(path, d_name); //lengthens path 
 					//printf("%s\n",d_name); //error checking and DEBUGGING
@@ -87,30 +82,21 @@ int travdir (hashTable* myTable, const char * dir_name)
 				targetFile = fopen(pathname, "r");
 				if (targetFile!=NULL)
 				{
-						recordNode* tmp = tokenize(targetFile, d_name);	//  <-----------------------------HERE IS THE TOKENIZE CALL
-				//if(tableInitialized){
-					addToTable(tmp, myTable, d_name);
-				//}else{
-				//	myTable = makeMasterTable(tmp, d_name);
-				//	tableInitialized = TRUE;
-				//}
-				}
-				else
-				{
-					printf("%s\n", d_name);
+				//		recordNode* tmp = tokenize(targetFile, d_name);	//  <-----------------------------HERE IS THE TOKENIZE CALL
+				//	addToTable(tmp, myTable, d_name);
 				}
 				break;
 			}
 			default:
 				printf("something is not right in ur switch statement");
-				return -2;
+				return;
 		}
 	
 	}
 //	printf("closing directory: %s\n", dir_name); //DEBUGGING 
 	if(closedir(dir)){
 		printf("error could not close dir");
-		return -3;
+		return;
 	}
 }
 
@@ -200,7 +186,6 @@ int checkInput(int argc)
 
 void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 {
-	
 	int count =0;
     //slot in the hashTable according to leading letter
     int index;
@@ -268,9 +253,10 @@ void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 						prev->next = node;
 						}
 				}
-				list = list->next;		
+				recordNode* temp = list;
+				list = list->next;
+				free(temp);
 			}
-			//destroyList(list);
     return;
 }
 
@@ -323,7 +309,7 @@ void outputTokens(hashTable* masterTable, FILE* outputFile)
 			head = masterTable->table[i];
 		}
 	}
-	//destroyTable(masterTable);
+	destroyTable(masterTable);
     closeOutput(outputFile);
 }
 //I'm like 99% sure this works
@@ -365,10 +351,10 @@ hashTable* scatterTokens (recordNode* head, int size, FILE* outputFile)
 		}
 		head = head->next;
 	}
-	//destroyList(toFree);
+	destroyList(toFree);
 	outputTokenList(myTable, outputFile);
 }
-//char* outputFile
+
 void outputTokenList (hashTable* myTable, FILE* outputFile)
 {
 	boolean wordInitialized = FALSE;
@@ -378,7 +364,7 @@ void outputTokenList (hashTable* myTable, FILE* outputFile)
 		outputInitialized = TRUE;
 	}
 	int i;
-	recordNode* curr, prev;
+	recordNode* curr;
 	for (i=0; i<myTable->length; i++)
 	{
 		curr = myTable->table[i];
@@ -555,7 +541,6 @@ int checkOverwrite(char** argv)
 
 int main (int argc, char** argv)
 {
-	boolean outputInitialized = FALSE;
 	hashTable* myTable = makeHashTable(36);
 
 		//FILE* inputFile = fopen(argv[2], "r");
