@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include "tokenizer.h"
 #include <errno.h>
+#include <dirent.h>
 
 //have to alter this to only exit if the INITIAL directory/file is not valid - it's ok to have
 //invalid ones later on, as long as you can still get some output
@@ -185,6 +186,7 @@ recordNode* tokenize(FILE* file, char* fileName)
 }
 //works for determined edge cases. will run more scenarios
 
+
 int checkInput(int argc)
 {
     //too few or too many inputs
@@ -199,12 +201,7 @@ int checkInput(int argc)
 
 void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 {
-	while(list!=NULL)
-	{
-		printf("%s\n", list->token);
-		list = list->next;
-	}
-	/*
+	
 	int count =0;
     //slot in the hashTable according to leading letter
     int index;
@@ -246,19 +243,26 @@ void addToTable(recordNode* list, hashTable* hTable , char* fileName)
                 }
 			if (curr!=NULL && sortalnum(curr->token, node->token)==0)
 			{
-				curr -> count ++;
+				if (strcmp(curr->fileName, node->fileName)!=0)
+				{
+					//printf("original file %s, current file  %s, token = %s\n", curr->fileName, node->fileName, node->token);
+					node->next = curr->next;
+					curr -> next = node;
+					//printTable(hTable);
+				}	
+				else
+					curr -> count ++;
 			}
 			else
-               		{
+               	{
 				node->next = curr;
-               			prev->next = node;
+           		prev->next = node;
      			}
 		}
 		list = list->next;		
 	}
-    return;*/
+    return;
 }
-
 
 hashTable* makeMasterTable(recordNode* list, char* fileName)
 {
@@ -385,18 +389,23 @@ hashTable* scatterTokens (recordNode* head, int size, FILE* outputFile)
 			curr = myTable->table[head->count-1];
 			prev = curr;
 			//for the same token with the same counts for different files, keep alphanumeric order
-			while(curr!=NULL && sortalnum(curr->fileName, head->fileName)>0)
+			while(curr!=NULL && strcmp(curr->fileName, head->fileName)<0)//sortalnum(curr->fileName, head->fileName)>0)
 			{
 				prev = curr;
 				curr = curr->next;
 			}
-			//if (prev == NULL)
-			//{
-			//	printf("null prev\n");
-			//}
 			recordNode* temp = makeNode(head->fileName, head->token);
 			temp->count = head->count;
-			myTable->table[head->count-1] = temp;
+			temp->next = curr;
+			if (myTable->table[temp->count-1] == curr)	
+			{
+				myTable->table[temp->count-1] = temp;
+			}
+			else
+			{
+				prev->next = temp;
+			}
+	
 		}
 		head = head->next;
 	}
@@ -564,7 +573,7 @@ void printLL(recordNode* head)
 	//recordNode* ptr = head;
 	while(head != NULL)
 	{
-		printf("%s\n", head->token);
+		printf("%s, %s\n", head->token, head ->fileName);
 		head = head->next;
 	}
 }
@@ -628,6 +637,7 @@ int main (int argc, char** argv)
 	travdir(myTable, argv[2]);
 		//recordNode* head = tokenize(inputFile, argv[2]);
 		//hashTable* myTable = makeMasterTable(head, argv[1]);
+	//printTable(myTable);
 	FILE* outputFile = fopen(argv[1], "w+");
 	outputTokens(myTable, outputFile);
 		//fclose(inputFile);
