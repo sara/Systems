@@ -5,13 +5,14 @@
 #include "tokenizer.h"
 #include <errno.h>
 #include <dirent.h>
+#include <unistd.h>
 
 //have to alter this to only exit if the INITIAL directory/file is not valid - it's ok to have
 //invalid ones later on, as long as you can still get some output
 int travdir (hashTable* myTable, const char * dir_name)
 {
 	
-	printf("opening directory : %s\n",dir_name);
+//	printf("opening directory : %s\n",dir_name);
 
 	DIR * dir;
 	FILE* targetFile;
@@ -38,7 +39,7 @@ int travdir (hashTable* myTable, const char * dir_name)
 		}
 		else
 		{
-			printf("could not load directory %s\n", dir_name);
+			printf("Error: could not open %s - File or directory  may not exist\n ", dir_name);
 				return -1;
 		}
 	}
@@ -86,7 +87,6 @@ int travdir (hashTable* myTable, const char * dir_name)
 				targetFile = fopen(pathname, "r");
 				if (targetFile!=NULL)
 				{
-						printf("hineini\n");
 						recordNode* tmp = tokenize(targetFile, d_name);	//  <-----------------------------HERE IS THE TOKENIZE CALL
 				//if(tableInitialized){
 					addToTable(tmp, myTable, d_name);
@@ -107,7 +107,7 @@ int travdir (hashTable* myTable, const char * dir_name)
 		}
 	
 	}
-	printf("closing directory: %s\n", dir_name); //DEBUGGING 
+//	printf("closing directory: %s\n", dir_name); //DEBUGGING 
 	if(closedir(dir)){
 		printf("error could not close dir");
 		return -3;
@@ -186,7 +186,6 @@ recordNode* tokenize(FILE* file, char* fileName)
 }
 //works for determined edge cases. will run more scenarios
 
-
 int checkInput(int argc)
 {
     //too few or too many inputs
@@ -251,7 +250,10 @@ void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 					//printTable(hTable);
 				}	
 				else
+				{
 					curr -> count ++;
+					printf("%s\n", curr->token);
+				}
 			}
 			else
                	{
@@ -433,11 +435,12 @@ void outputTokenList (hashTable* myTable, FILE* outputFile)
 				fprintf(outputFile, "\t<word text = \"%s\">\n", curr->token);
 				wordInitialized = TRUE;
 			}
-		//	while(sortalnum(currTok, curr->token)==0)
-		//	{
+			//while(sortalnum(currTok, curr->token)==0)
+			while (curr!=NULL)
+			{
 				fprintf(outputFile, "\t\t<file name = \"%s\">%i</file>\n",curr->fileName, curr->count);
 				curr = curr-> next;
-		//	}
+			}
 			fprintf(outputFile, "\t</word>\n");
 		}
 	}
@@ -624,19 +627,39 @@ recordNode* otherTokenize(char* inputString, char* fileName)
     return head;
 }
 
+/*int checkOverwrite(char** argv)
+{
+	int x = 1;
+	char* file = "./%s", argv[1];
+	if(access(file, F_OK) == 0)
+	{
+		printf("File already exists in directory. Do you wish you overwrite it? Enter 1 to proceed or 0 to exit\n");
+	x = getchar();
+	}
+	else
+	{
+		printf("fresh file\n");
+	}
+	return x;
+}*/
+
 int main (int argc, char** argv)
 {
 	boolean outputInitialized = FALSE;
 	hashTable* myTable = makeHashTable(36);
 
 		//FILE* inputFile = fopen(argv[2], "r");
-	if(checkInput(argc) == 1)
+	if(checkInput(argc) == 0)
 	{
-		return 1; //-1?
+		return 0; //-1?
 	}
+/*	if (checkOverwrite(argv)==0)
+	{
+		return 0;
+	}*/
 	travdir(myTable, argv[2]);
 		//recordNode* head = tokenize(inputFile, argv[2]);
-		//hashTable* myTable = makeMasterTable(head, argv[1]);
+		//hashTable* myTable = makeMasterTabl e(head, argv[1]);
 	//printTable(myTable);
 	FILE* outputFile = fopen(argv[1], "w+");
 	outputTokens(myTable, outputFile);
