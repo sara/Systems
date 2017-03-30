@@ -453,7 +453,6 @@ int checkOverwrite(char** argv)
 
 void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 {
-	
 	int count =0;
     //slot in the hashTable according to leading letter
     int index;
@@ -464,7 +463,7 @@ void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 	{
 		count ++;
 		leading = list->token[0];
-        	index = leading;
+        index = leading;
 		//alphas first in table, numerics second
 		if (!isalpha(leading))
 			{
@@ -474,10 +473,11 @@ void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 			{
 				index -=97;
 			}
-		//node to be inserted
+		//node to be inserted 
         recordNode* node = makeNode(fileName, list->token);
         //if node is to be inserted at front of list
-		if (hTable->table[index] == NULL || sortalnum(hTable->table[index]->token, node->token)<0)    		{
+		if (hTable->table[index] == NULL || sortalnum(hTable->table[index]->token, node->token)<0)    		
+		{
             node->next = hTable->table[index];
             hTable->table[index] = node;
 		}
@@ -496,22 +496,29 @@ void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 			{
 				if (strcmp(curr->fileName, node->fileName)!=0)
 				{
-								//HERE BEGINS THE NEW TERRITORY
-							if(curr->next != NULL && strcmp(curr->next->token, node->token)==0 && strcmp(node->fileName, curr->next->fileName)==0)
+						boolean found = FALSE;	
+						while (curr!=NULL && !found)
+						{
+							if(strcmp(curr->fileName, node->fileName)==0 && strcmp(curr->token, node->token)==0)
 							{
-								//printf("well it might be working");	
-								curr->next->count++;
+								curr->count++;
+								found = TRUE;
 							}
 							else
 							{
-								node->next = curr->next;
-								curr->next=node;
+								curr = curr->next;
 							}
-				}
-							else
-							{
-								curr->count ++;
-							}
+						}
+						if (!found)
+						{
+							curr = prev->next;
+							node->next = curr;
+							prev->next = node;
+						}
+						else
+						{
+							curr->count++;
+						}
 				}
 				else
 				{
@@ -519,10 +526,16 @@ void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 					prev->next = node;
 				}
 			}
+			recordNode* temp = list;
 			list = list->next;
+			free(temp);
 			}
-			return;
 	}
+					
+
+						
+
+
 
 
 int main (int argc, char** argv)

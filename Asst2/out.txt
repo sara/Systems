@@ -19,6 +19,9 @@
 	<word text = "fish">
 		<file name = "baa.txt">1</file>
 	</word>
+	<word text = "merp">
+		<file name = "merp.txt">1</file>
+	</word>
 	<word text = "named">
 		<file name = "baa.txt">1</file>
 		<file name = "boo.txt">1</file>

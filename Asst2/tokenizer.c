@@ -52,7 +52,6 @@ recordNode* tokenize(FILE* file, char* fileName)
     return head;
 }
 
-
 void travdir (hashTable* myTable, const char * dir_name)
 {
 
@@ -450,7 +449,6 @@ int checkOverwrite(char** argv)
 	return x;
 }
 
-
 void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 {
 	
@@ -523,7 +521,6 @@ void addToTable(recordNode* list, hashTable* hTable , char* fileName)
 			}
 			return;
 	}
-
 
 int main (int argc, char** argv)
 {
