@@ -15,10 +15,30 @@ void error(char* msg)
 	exit (1);
 }
 
+int myOpen(char* command)
+{
+
+}
+
+
+
+
 void* clientHandler(void* clientSocket)
 {
 	int clientSockFD = *(int*)clientSocket;
-	int commandSize = 
+	char command [1003];
+	int commandSize = read(clientSockFD, command, 1003);
+	switch (command[0])
+	{
+		case 'O':
+			myOpen(command);
+		case 'R':
+			myRead (command);
+		case 'W':
+			myWrite (command);
+		case 'C':
+			myClose(command);
+	}
 /*	int clientSockFD = *(int*)clientSocket;
 	int read_size;
 	char* message;
