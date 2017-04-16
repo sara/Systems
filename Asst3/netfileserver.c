@@ -8,6 +8,27 @@
 #include <string.h>
 #include <pthread.h>
 
+typedef struct ClientData
+{
+	char* pathName;
+	int fileMode;
+	int userMode;
+	int serverFD;
+	int clientFD;
+} clientData;
+
+
+clientData* makeClient(char* command)
+{
+	char* pathname = (char*)malloc(sizeof(char)*strlen(command)-2);
+	strcpy (pathname, command+2);
+	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
+	userProfile -> fileMode = command[0];
+	userProfile -> userMode = command[1];
+	userProfile -> pathName = pathname;	
+}
+
+
 
 void error(char* msg)
 {
@@ -15,10 +36,10 @@ void error(char* msg)
 	exit (1);
 }
 
-int myOpen(char* command)
+/*int myOpen(char* command)
 {
-
-}
+	int ser
+}*/
 
 
 
@@ -26,8 +47,8 @@ int myOpen(char* command)
 void* clientHandler(void* clientSocket)
 {
 	int clientSockFD = *(int*)clientSocket;
-	char command [1003];
-	int commandSize = read(clientSockFD, command, 1003);
+	char* command = (char*)malloc(sizeof(char)*1003);;
+	read(clientSockFD, command, 1003);
 	switch (command[0])
 	{
 		case 'O':
