@@ -7,12 +7,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <errno.h>
+
+typedef enum {FAIL, SUCCESS} status;
 
 typedef struct ClientData
 {
 	char* pathName;
 	int fileMode;
-	int userMode;
+	int opMode;
+	int privacyMode;
 	int serverFD;
 	int clientFD;
 } clientData;
@@ -24,10 +28,16 @@ clientData* makeClient(char* command)
 	strcpy (pathname, command+2);
 	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
 	userProfile -> fileMode = command[0];
-	userProfile -> userMode = command[1];
+	userProfile -> opMode = command[1];
 	userProfile -> pathName = pathname;	
+	return userProfile;
 }
 
+void destroyUser(clientData* user)
+{
+	free(user->pathName);
+	free(user);
+}
 
 
 void error(char* msg)
@@ -36,30 +46,47 @@ void error(char* msg)
 	exit (1);
 }
 
-/*int myOpen(char* command)
+char*  myOpen(clientData* userProfile)
 {
-	int ser
-}*/
+	char* buffer = (char*)malloc(sizeof(char)*100);
+	int serverFD = open(userProfile -> pathName, userProfile -> fileMode);
+	if (serverFD < 0)
+	{
+		sprintf(buffer, "%d %d", FAIL, errno);
+	}
+	else
+	{
+		sprintf(buffer, "%d %d", SUCCESS, -1*serverFD);
+	}
+	destroyUser(userProfile);
+	return buffer;
+}
 
 
 
 
 void* clientHandler(void* clientSocket)
 {
+	char* buffer;
 	int clientSockFD = *(int*)clientSocket;
 	char* command = (char*)malloc(sizeof(char)*1003);;
+	clientData* userProfile = makeClient(command);
 	read(clientSockFD, command, 1003);
-	switch (command[0])
+	switch (userProfile -> opMode)
 	{
 		case 'O':
-			myOpen(command);
+			 buffer = myOpen(userProfile);
+			 break;
 		case 'R':
-			myRead (command);
+			myRead (userProfile);
 		case 'W':
-			myWrite (command);
+			myWrite (userProfile);
 		case 'C':
-			myClose(command);
+			myClose(userProfile);
 	}
+		write(clientSocket, buffer, strlen(buffer)+1);
+		pthread_exit(NULL);
+		
 /*	int clientSockFD = *(int*)clientSocket;
 	int read_size;
 	char* message;
@@ -131,7 +158,6 @@ int main (int argc, char** argv)
 			error("ERROR could not create thread");
 		}
 		pthread_join(clientThread, NULL); 
-
 	}
 }
 

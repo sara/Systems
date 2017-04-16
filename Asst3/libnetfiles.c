@@ -1,26 +1,16 @@
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
 #include <pthread.h>
 #include <arpa/inet.h>	
 #include <errno.h>
+#include <h_errno.h>
 #include "libnetfiles.h"
-
 static boolean hostValid = FALSE;
 static char* hostName;
 
-
-
-void error (char* msg)
-{
-	perror(msg);
-	exit(0);
-}
 
 int socketToTheMan(char* hostname)
 {
@@ -76,23 +66,38 @@ int netserverinit(char* hostname)
 
 int netopen (const char* pathname, int flags)
 {
+	char buffer [100];
 	int writeIndicator = 0;
 	if (hostValid != 1)
 	{
-		error ("ERROR host not found");
+		printf ("ERROR host not found\n");
+		h_errno = HOST_NOT_FOUND;
 	}
 	
-	char command [sizeof(pathname) +1];
+	char command [strlen(pathname)+3];
 	int clientSocket = socketToTheMan(hostName);	
-	strcpy(command, pathname);
-	command[sizeof(command)-1] = flags;
+	strcpy(command+2, pathname);
+	command[0] = 'O';
+	command [1] = flags;
 	writeIndicator = write(clientSocket, command, strlen(command));
 	if (writeIndicator < 0)
 	{
 		error("ERROR writing to socket");
 	}
-
-
+	int readIndicator = read(clientSocket, buffer, 100);
+	if (readIndicator <0)
+	{
+		close(clientSocket);
+		return -1;
+	}
+	if (buffer[0] == FALSE)
+	{
+		errno =  buffer[1];
+		close(clientSocket);
+		return -1;
+	}
+	close(clientSocket);
+	return buffer[1];
 }
 
 
