@@ -10,7 +10,7 @@
 #include <errno.h>
 
 typedef enum {FAIL, SUCCESS} status;
-
+typedef enum {FALSE, TRUE} boolean;
 typedef struct ClientData
 {
 	char* pathName;
@@ -39,16 +39,10 @@ void destroyUser(clientData* user)
 	free(user);
 }
 
-
-void error(char* msg)
-{
-	perror(msg);
-	exit (1);
-}
-
 char*  myOpen(clientData* userProfile)
 {
 	char* buffer = (char*)malloc(sizeof(char)*100);
+	bzero(buffer, 100);
 	int serverFD = open(userProfile -> pathName, userProfile -> fileMode);
 	if (serverFD < 0)
 	{
@@ -56,6 +50,7 @@ char*  myOpen(clientData* userProfile)
 	}
 	else
 	{
+		printf("SERVER FD: %d\n", serverFD);
 		sprintf(buffer, "%d %d", SUCCESS, -1*serverFD);
 	}
 	destroyUser(userProfile);
@@ -77,14 +72,14 @@ void* clientHandler(void* clientSocket)
 		case 'O':
 			 buffer = myOpen(userProfile);
 			 break;
-		case 'R':
+/*		case 'R':
 			myRead (userProfile);
 		case 'W':
 			myWrite (userProfile);
 		case 'C':
 			myClose(userProfile);
-	}
-		write(clientSocket, buffer, strlen(buffer)+1);
+*/	}
+		write(clientSockFD, buffer, strlen(buffer)+1);
 		pthread_exit(NULL);
 		
 /*	int clientSockFD = *(int*)clientSocket;
@@ -119,19 +114,21 @@ void* clientHandler(void* clientSocket)
 
 int main (int argc, char** argv)
 {
+	boolean active = TRUE;
 	int sockfd = -1;
 	int clientSocket = -1;
-	int portno = 8080;
+	int portno = 9127;
 	int clilen = -1;
 	int amtData = -1;
-	char buffer [256];
+	char buffer [5000];
 	struct sockaddr_in serverAddressInfo;
 	struct sockaddr_in clientAddressInfo;
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
 	{
-		error("ERROR opening socket");
+		printf("ERROR opening socket; errno: %d, h_errno:%d\n", errno, h_errno);
+		return 1;
 	}
 	bzero((char *)&serverAddressInfo, sizeof(serverAddressInfo));
 	serverAddressInfo.sin_port = htons(portno);
@@ -140,24 +137,44 @@ int main (int argc, char** argv)
 	
 	if (bind(sockfd, (struct sockaddr *) &serverAddressInfo, sizeof(serverAddressInfo))<0)
 	{
-		error ("ERROR ON BINDING");
+		printf ("ERROR ON BINDING; errno: %d, h_errno: ", errno, h_errno);
+		return 1;
 	}
 		
-		listen (sockfd, 5);
+		if (listen (sockfd, 50)<0)
+		{
+			printf("ERROR LISTEN FAILED; errno: %d", errno);
+			close(sockfd);
+			return 1;
+		}
 		clilen  = sizeof(clientAddressInfo);
 		pthread_t clientThread;
-		
-	while (clientSocket = accept(sockfd, (struct sockaddr *) &clientAddressInfo, &clilen))
+	while (active == TRUE)
 	{
+		printf("Listening for client requests\n");
+		clientSocket = accept(sockfd, (struct sockaddr *) &clientAddressInfo, &clilen);
 		if (clientSocket <0)
 		{
-			error("ERROR on accept");
+			if (errno == EINTR)
+			{
+				printf("process completed succesfully\n");
+				close(clientSocket);
+				close(sockfd);
+				return 0;
+			}
+			else
+			{
+				printf("ERROR on accept, errno: %d\n", errno);
+				close (clientSocket);
+				return 1;
+			}
 		}
-		else if (pthread_create(&clientThread, NULL, clientHandler, (void*)&clientSocket)<0)
+		else if (pthread_create(&clientThread, NULL, clientHandler, (void*)&clientSocket)!=0)
 		{
-			error("ERROR could not create thread");
+			printf("ERROR could not create thread; errno: %d\n", errno);
 		}
 		pthread_join(clientThread, NULL); 
+	
 	}
 }
 
