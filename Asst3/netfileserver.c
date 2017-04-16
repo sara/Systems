@@ -8,7 +8,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
-
+#include <fcntl.h>
 typedef enum {FAIL, SUCCESS} status;
 typedef enum {FALSE, TRUE} boolean;
 typedef struct ClientData
@@ -27,8 +27,8 @@ clientData* makeClient(char* command)
 	char* pathname = (char*)malloc(sizeof(char)*strlen(command)-2);
 	strcpy (pathname, command+2);
 	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
-	userProfile -> fileMode = command[0];
-	userProfile -> opMode = command[1];
+	userProfile -> opMode = command[0];
+	userProfile -> fileMode = command[1];
 	userProfile -> pathName = pathname;	
 	return userProfile;
 }
@@ -39,13 +39,14 @@ void destroyUser(clientData* user)
 	free(user);
 }
 
-char*  myOpen(clientData* userProfile)
+char* myOpen(clientData* userProfile)
 {
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
 	int serverFD = open(userProfile -> pathName, userProfile -> fileMode);
 	if (serverFD < 0)
 	{
+		printf("failed to open file\n");
 		sprintf(buffer, "%d %d", FAIL, errno);
 	}
 	else
@@ -65,8 +66,8 @@ void* clientHandler(void* clientSocket)
 	char* buffer;
 	int clientSockFD = *(int*)clientSocket;
 	char* command = (char*)malloc(sizeof(char)*1003);;
-	clientData* userProfile = makeClient(command);
 	read(clientSockFD, command, 1003);
+	clientData* userProfile = makeClient(command);
 	switch (userProfile -> opMode)
 	{
 		case 'O':
@@ -117,7 +118,7 @@ int main (int argc, char** argv)
 	boolean active = TRUE;
 	int sockfd = -1;
 	int clientSocket = -1;
-	int portno = 9127;
+	int portno = 91127;
 	int clilen = -1;
 	int amtData = -1;
 	char buffer [5000];

@@ -8,15 +8,15 @@
 #include <errno.h>
 #include "libnetfiles.h"
 
-static boolean hostValid = FALSE;
-static char* hostName;
+static int hostValid = -1;
+char* hostName;
 
 
 int socketToTheMan(char* hostname)
 {
 	hostName = hostname;
 	int clientSocket = -1;
-	int portno = 9127;
+	int portno = 91127;
 	struct sockaddr_in serverAddressInfo;
 	struct hostent* serverIPAddress = gethostbyname(hostName);
 	if (serverIPAddress == NULL)
@@ -49,26 +49,16 @@ int socketToTheMan(char* hostname)
 
 int netserverinit(char* hostname)
 {
-	/*int hostValid;
 	struct hostent* serverIP = gethostbyname(hostname);
 	if (serverIP == NULL)
 	{
 		hostValid = -1;
 	}
-	host valid = 0;
-	//int hostValid = socketToTheMan(hostname);
-	if (serverIPAddress == NULL)
-	{
-			hostValid = 0;
-			printf("yeet\n");
-	}
 	else
-	{
-		hostValid = 1;
-		printf("yoot\n");
-	}*/
-	int num = socketToTheMan(hostname);
-	return num;
+		hostValid = 0;
+	hostName = (char*)malloc(sizeof(char)*strlen(hostname));
+	strcpy(hostName, hostname);
+	return hostValid; 
 }
 
 
@@ -78,16 +68,15 @@ int netopen (const char* pathname, int flags)
 	bzero(buffer, 100);
 	int writeIndicator = 0;
 	int fileDes = 0;
-	if (hostValid != 1)
+	if (hostValid != 0)
 	{
 		printf ("ERROR host not found\n");
 		h_errno = HOST_NOT_FOUND;
 	}	
 	char command [strlen(pathname)+3];
 	int clientSocket = socketToTheMan(hostName);	
-	strcpy(command+2, pathname);
-	sprintf(command, "%c%d", 'O', flags);
-//	command[0] = 'O';
+	sprintf(command, "%c%d%s", 'O', flags, pathname);
+	//	command[0] = 'O';
 //	command [1] = flags;
 	writeIndicator = write(clientSocket, command, strlen(command));
 	if (writeIndicator < 0)
@@ -99,6 +88,7 @@ int netopen (const char* pathname, int flags)
 	if (readIndicator <0)
 	{
 		close(clientSocket);
+		printf("ERROR: failed to read\n");
 		return -1;
 	}
 	if (buffer[0] == FALSE)
@@ -109,7 +99,7 @@ int netopen (const char* pathname, int flags)
 	}
 	close(clientSocket);
 	return fileDes;
-}
+	}
 
 
 
