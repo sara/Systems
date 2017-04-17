@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <fcntl.h>
+
 typedef enum {FAIL, SUCCESS} status;
 typedef enum {FALSE, TRUE} boolean;
 typedef struct ClientData
@@ -19,26 +20,68 @@ typedef struct ClientData
 	int privacyMode;
 	int serverFD;
 	int clientFD;
+	int numBytes;
+	struct ClientData* next;
 } clientData;
+typedef struct dataTable
+{
+	clientData* files [100];
+}dataTable;
 
-
+dataTable* fileTable;
 clientData* makeClient(char* command)
 {
-	char* pathname = (char*)malloc(sizeof(char)*strlen(command)-2);
-	strcpy (pathname, command+2);
+	char buffer [1000];
+	bzero(buffer, 1000);
+	int fileMode, fileDes, nbyte;
+	char* path;
 	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
 	userProfile -> opMode = command[0];
-	userProfile -> fileMode = command[1];
-	userProfile -> pathName = pathname;	
+	userProfile -> next = NULL;
+	switch (userProfile -> opMode)
+	{
+		case 'O':
+			sscanf(buffer+1, "%d%s", fileMode, path);
+			userProfile -> fileMode = fileMode;
+			userProfile -> pathName = path;	
+			break;
+		case 'R':
+			sscanf(buffer+1, "%d%d", fileDes, nbyte);
+			userProfile -> serverFD = fileDes;
+			userProfile -> numBytes = nbyte;
+			break;
+
+	}
 	return userProfile;
 }
-
+void makeTable(dataTable* table)
+{
+	int i;
+	for (i=0; i< 100; i++)
+	{
+		table->files[i] = NULL;
+	}
+}
 void destroyUser(clientData* user)
 {
 	free(user->pathName);
 	free(user);
 }
-
+int hash (int fileDes)
+{
+	int hash = fileDes%13;
+	return hash;
+}
+boolean isOpen(int fileDes)
+{
+	clientData* curr = fileTable->files[hash(fileDes)];
+	while (curr!= NULL)
+	{
+		if (curr ->serverFD == fileDes)
+				return TRUE;
+	}
+	return FALSE;
+}
 char* myOpen(clientData* userProfile)
 {
 	char* buffer = (char*)malloc(sizeof(char)*100);
@@ -51,16 +94,23 @@ char* myOpen(clientData* userProfile)
 	}
 	else
 	{
+		int hashIndex = hash(userProfile->serverFD);
 		printf("SERVER FD: %d\n", serverFD);
 		sprintf(buffer, "%d %d", SUCCESS, -1*serverFD);
+		userProfile -> serverFD = serverFD;
+		userProfile -> clientFD = -1*serverFD;
+		userProfile -> next = fileTable -> files [hashIndex];
 	}
-	destroyUser(userProfile);
 	return buffer;
 }
-
-
-
-
+char* myRead(clientData* userProfile)
+{
+	char buffer 
+	if(isOpen(userProfile -> serverFD) == FALSE)
+	{
+		printf("ERROR file descriptor does not exist\n");
+	}
+}
 void* clientHandler(void* clientSocket)
 {
 	char* buffer;
@@ -73,9 +123,11 @@ void* clientHandler(void* clientSocket)
 		case 'O':
 			 buffer = myOpen(userProfile);
 			 break;
-/*		case 'R':
-			myRead (userProfile);
-		case 'W':
+		case 'R':
+			userProfile -> numBytes = command
+			buffer = myRead (userProfile);
+			break;
+/*		case 'W':
 			myWrite (userProfile);
 		case 'C':
 			myClose(userProfile);
@@ -111,7 +163,6 @@ void* clientHandler(void* clientSocket)
 	}
 	return 0;*/
 }
-
 
 int main (int argc, char** argv)
 {
@@ -150,6 +201,7 @@ int main (int argc, char** argv)
 		}
 		clilen  = sizeof(clientAddressInfo);
 		pthread_t clientThread;
+	makeTable(fileTable);
 	while (active == TRUE)
 	{
 		printf("Listening for client requests\n");

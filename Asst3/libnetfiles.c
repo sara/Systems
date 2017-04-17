@@ -81,7 +81,7 @@ int netopen (const char* pathname, int flags)
 	writeIndicator = write(clientSocket, command, strlen(command));
 	if (writeIndicator < 0)
 	{
-		error("ERROR writing to socket");
+		printf("ERROR writing to socket");
 	}
 	int readIndicator = read(clientSocket, buffer, 100);
 	sscanf(buffer, "%d%d", &readIndicator, &fileDes);
@@ -101,7 +101,31 @@ int netopen (const char* pathname, int flags)
 	return fileDes;
 	}
 
+ssize_t netread (int fildes, void* buf, size_t nbyte)
+{
+	if (hostValid != 0)
+	{
+		printf("ERROR host not found\n");
+		h_errno = HOST_NOT_FOUND;
+	}
+	if (fildes >=0)
+	{
+		printf("ERROR invalid file descriptor\n");
+	}
+	char buffer [100];
+	bzero(buffer, 100);
+	int writeIndicator = -1;
+	int readIndicator = -1;
+	char command [100];;
+	int clientSocket = socketToTheMan(hostName);
+	sprintf(command, "%c%d%d\0", 'R', fildes, nbyte);
+	writeIndicator = write (clientSocket, command, strlen(command));
+	if (writeIndicator < 0)
+	{
+		printf("ERROR writing to socket\n");
+	}
 
+}
 
 
 
