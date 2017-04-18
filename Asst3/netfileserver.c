@@ -27,39 +27,48 @@ typedef struct dataTable
 {
 	clientData* files [100];
 }dataTable;
-
 dataTable* fileTable;
 clientData* makeClient(char* command)
 {
+	printf("command: %s\n", command);
 	char buffer [1000];
 	bzero(buffer, 1000);
 	int fileMode, fileDes, nbyte;
 	char* path;
+	char userMode;
 	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
 	userProfile -> opMode = command[0];
 	userProfile -> next = NULL;
 	switch (userProfile -> opMode)
 	{
 		case 'O':
-			sscanf(buffer+1, "%d%s", fileMode, path);
+			//sscanf(command+1, "%d", fileMode);
+			path = (char*)malloc(sizeof(char)*strlen(command)-2);
+			sscanf(command, "%c%d%s", &userMode, &fileMode, path);
+			//strcpy(path, command+2);
+			printf("file mode: %d, path: %s\n", fileMode, path);
 			userProfile -> fileMode = fileMode;
 			userProfile -> pathName = path;	
 			break;
 		case 'R':
-			sscanf(buffer+1, "%d%d", fileDes, nbyte);
-			userProfile -> serverFD = fileDes;
+			sscanf(command+1, "%d%d", fileDes, nbyte);
+			userProfile -> serverFD = fileDes*-1;
+			userProfile -> clientFD = fileDes;
 			userProfile -> numBytes = nbyte;
+			printf("FILE DES: %d\n", userProfile-> numBytes);
+			printf("NUM BYTES: %d\n", userProfile->numBytes);
 			break;
 
 	}
 	return userProfile;
 }
-void makeTable(dataTable* table)
+void makeTable()
 {
 	int i;
+	fileTable = (dataTable*)malloc(sizeof(dataTable));
 	for (i=0; i< 100; i++)
 	{
-		table->files[i] = NULL;
+		fileTable->files[i] = NULL;
 	}
 }
 void destroyUser(clientData* user)
@@ -86,6 +95,7 @@ char* myOpen(clientData* userProfile)
 {
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
+//	printf("%s\n", userProfile->pathName);
 	int serverFD = open(userProfile -> pathName, userProfile -> fileMode);
 	if (serverFD < 0)
 	{
@@ -95,7 +105,7 @@ char* myOpen(clientData* userProfile)
 	else
 	{
 		int hashIndex = hash(userProfile->serverFD);
-		printf("SERVER FD: %d\n", serverFD);
+	//	printf("SERVER FD: %d\n", serverFD);
 		sprintf(buffer, "%d %d", SUCCESS, -1*serverFD);
 		userProfile -> serverFD = serverFD;
 		userProfile -> clientFD = -1*serverFD;
@@ -105,17 +115,36 @@ char* myOpen(clientData* userProfile)
 }
 char* myRead(clientData* userProfile)
 {
-	char buffer 
+	char* stringNum;
+	sprintf(stringNum, "%d", userProfile ->numBytes);
+	int bufferLength = userProfile->numBytes +strlen(stringNum) +1;
+	char buffer[userProfile->numBytes];
+	char* metaBuffer = (char*)malloc(sizeof(char)* bufferLength);
+	bzero(metaBuffer, bufferLength);
+	printf("118\n");
 	if(isOpen(userProfile -> serverFD) == FALSE)
 	{
 		printf("ERROR file descriptor does not exist\n");
+		sprintf(metaBuffer,"%d%s", FAIL, strerror(9));
 	}
+	printf("126\n");
+	//in extra credit check that file is allowed to be read from
+	int numRead = read(userProfile -> serverFD, buffer, userProfile -> numBytes);
+	if (numRead <0)
+	{
+		printf("ERROR reading from file");
+		sprintf(metaBuffer, "%d%d", FAIL, errno);
+		return metaBuffer;
+	}
+	sprintf(metaBuffer, "%d;%s", numRead+1, buffer);
+	return metaBuffer;	
+	
 }
 void* clientHandler(void* clientSocket)
 {
 	char* buffer;
 	int clientSockFD = *(int*)clientSocket;
-	char* command = (char*)malloc(sizeof(char)*1003);;
+	char* command = (char*)malloc(sizeof(char)*1003);
 	read(clientSockFD, command, 1003);
 	clientData* userProfile = makeClient(command);
 	switch (userProfile -> opMode)
@@ -124,7 +153,6 @@ void* clientHandler(void* clientSocket)
 			 buffer = myOpen(userProfile);
 			 break;
 		case 'R':
-			userProfile -> numBytes = command
 			buffer = myRead (userProfile);
 			break;
 /*		case 'W':
@@ -134,42 +162,13 @@ void* clientHandler(void* clientSocket)
 */	}
 		write(clientSockFD, buffer, strlen(buffer)+1);
 		pthread_exit(NULL);
-		
-/*	int clientSockFD = *(int*)clientSocket;
-	int read_size;
-	char* message;
-	char clientMessage [200];
-	printf("here i am!\n");
-	message = "Hi, I'm Python and I'll be serving you today\n";
-	write(clientSockFD, message, strlen(message));
-	message = "Hi, I'm Python and I'll be serving you today\n";
-	write(clientSockFD, message, strlen(message));
-	read_size = recv(clientSockFD, clientMessage, 2000, 0);
-	while (read_size > 0)
-	{
-		printf("in\n");
-		clientMessage [read_size] = '\0';
-		write (clientSockFD, clientMessage, strlen(clientMessage));
-		memset(clientMessage, 0, 2000);
-	}
-	if (read_size == 0)
-	{
-		puts ("disconnected");
-		fflush (stdout);
-	}
-	else if(read_size = -1)
-	{
-		perror("recv failed");
-	}
-	return 0;*/
 }
-
 int main (int argc, char** argv)
 {
 	boolean active = TRUE;
 	int sockfd = -1;
 	int clientSocket = -1;
-	int portno = 91127;
+	int portno = 91128;
 	int clilen = -1;
 	int amtData = -1;
 	char buffer [5000];
@@ -186,21 +185,19 @@ int main (int argc, char** argv)
 	serverAddressInfo.sin_port = htons(portno);
 	serverAddressInfo.sin_family = AF_INET;	
 	serverAddressInfo.sin_addr.s_addr = INADDR_ANY;
-	
 	if (bind(sockfd, (struct sockaddr *) &serverAddressInfo, sizeof(serverAddressInfo))<0)
 	{
 		printf ("ERROR ON BINDING; errno: %d, h_errno: ", errno, h_errno);
 		return 1;
 	}
-		
 		if (listen (sockfd, 50)<0)
 		{
 			printf("ERROR LISTEN FAILED; errno: %d", errno);
 			close(sockfd);
 			return 1;
 		}
-		clilen  = sizeof(clientAddressInfo);
-		pthread_t clientThread;
+	clilen  = sizeof(clientAddressInfo);
+	pthread_t clientThread;
 	makeTable(fileTable);
 	while (active == TRUE)
 	{

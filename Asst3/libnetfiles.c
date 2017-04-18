@@ -16,7 +16,7 @@ int socketToTheMan(char* hostname)
 {
 	hostName = hostname;
 	int clientSocket = -1;
-	int portno = 91127;
+	int portno = 91128;
 	struct sockaddr_in serverAddressInfo;
 	struct hostent* serverIPAddress = gethostbyname(hostName);
 	if (serverIPAddress == NULL)
@@ -64,6 +64,7 @@ int netserverinit(char* hostname)
 
 int netopen (const char* pathname, int flags)
 {
+	printf("PERFORMING NET OPEN\n");
 	char buffer [100];
 	bzero(buffer, 100);
 	int writeIndicator = 0;
@@ -101,6 +102,12 @@ int netopen (const char* pathname, int flags)
 	return fileDes;
 	}
 
+
+int test (int x)
+{
+	printf("x: %d\n", x);
+	return x;
+}
 ssize_t netread (int fildes, void* buf, size_t nbyte)
 {
 	if (hostValid != 0)
@@ -112,20 +119,35 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	{
 		printf("ERROR invalid file descriptor\n");
 	}
-	char buffer [100];
+	char* buffer = (char*)malloc(sizeof(char)*(int)nbyte+1);// [(int)nbyte+1];
 	bzero(buffer, 100);
 	int writeIndicator = -1;
 	int readIndicator = -1;
-	char command [100];;
+	char command [100];
 	int clientSocket = socketToTheMan(hostName);
-	sprintf(command, "%c%d%d\0", 'R', fildes, nbyte);
+	sprintf(command, "%c%d%d", 'R', fildes, (int)nbyte);
 	writeIndicator = write (clientSocket, command, strlen(command));
 	if (writeIndicator < 0)
 	{
 		printf("ERROR writing to socket\n");
 	}
-
-}
+	readIndicator = read(clientSocket, buffer,  nbyte+1);
+	if(readIndicator < 0)
+	{
+		close(clientSocket);
+		printf("ERROR: failed to read\n");
+		return -1;
+	}
+	if (buffer[0] == FALSE)
+	{
+			
+			close(clientSocket);
+		return -1;
+	}
+	close(clientSocket);
+	printf("libnet numRead: %d\n", buffer[0]);
+	return buffer[0];
+	}
 
 
 
