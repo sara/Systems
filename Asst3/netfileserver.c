@@ -167,9 +167,7 @@ void* clientHandler(void* clientSocket)
 			 buffer = myOpen(userProfile);
 			 break;
 		case 'R':
-			printf("line 157\n");
 			buffer = myRead(userProfile);
-			printf("line 159\n");
 			break;
 /*		case 'W':
 			myWrite (userProfile);
@@ -234,6 +232,7 @@ int main (int argc, char** argv)
 				close (clientSocket);
 				return 1;
 			}
+		
 		}
 		else if (pthread_create(&clientThread, NULL, clientHandler, (void*)&clientSocket)!=0)
 		{
