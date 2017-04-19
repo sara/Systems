@@ -46,17 +46,18 @@ clientData* makeClient(char* command)
 			path = (char*)malloc(sizeof(char)*strlen(command)-2);
 			sscanf(command, "%c%d%s", &userMode, &fileMode, path);
 			//strcpy(path, command+2);
-			printf("file mode: %d, path: %s\n", fileMode, path);
+			//printf("file mode: %d, path: %s\n", fileMode, path);
 			userProfile -> fileMode = fileMode;
 			userProfile -> pathName = path;	
 			break;
 		case 'R':
-			sscanf(command+1, "%d%d", fileDes, nbyte);
+			sscanf(command+1, "%d;%d", &fileDes, &nbyte);
 			userProfile -> serverFD = fileDes*-1;
 			userProfile -> clientFD = fileDes;
 			userProfile -> numBytes = nbyte;
-			printf("FILE DES: %d\n", userProfile-> numBytes);
-			printf("NUM BYTES: %d\n", userProfile->numBytes);
+			//printf("fildes: %d nbyte: %d\n", fileDes, nbyte);
+			//printf("FILE DES: %d\n", userProfile-> numBytes);
+			//printf("NUM BYTES: %d\n", userProfile->numBytes);
 			break;
 
 	}
@@ -78,16 +79,22 @@ void destroyUser(clientData* user)
 }
 int hash (int fileDes)
 {
-	int hash = fileDes%13;
+	int hash = fileDes%100;
 	return hash;
 }
-boolean isOpen(int fileDes)
+boolean isOpen(clientData* userProfile)
 {
-	clientData* curr = fileTable->files[hash(fileDes)];
+	int hashIndex = hash(userProfile->serverFD);
+	printf("isOpen fileDes: %d isOpen hash index: %d\n", userProfile->serverFD, hashIndex);
+	//printf("READ STATUS: %d\n", fileTable->files[hashIndex]->serverFD);
+	
+	clientData* curr = fileTable->files[hash(userProfile->serverFD)];
 	while (curr!= NULL)
 	{
-		if (curr ->serverFD == fileDes)
-				return TRUE;
+		printf("TABLE STATE: %d\n", fileTable ->files[hash(userProfile->serverFD)]->serverFD);
+		if (curr ->serverFD == userProfile->serverFD)
+			return TRUE;
+		curr = curr->next;
 	}
 	return FALSE;
 }
@@ -104,30 +111,36 @@ char* myOpen(clientData* userProfile)
 	}
 	else
 	{
-		int hashIndex = hash(userProfile->serverFD);
-	//	printf("SERVER FD: %d\n", serverFD);
+		int hashIndex = (serverFD)%100;
+		//printf("myOpen file descriptor: %d, hashIndex %d\n");
+		userProfile -> next = fileTable->files[hashIndex];
+		fileTable->files[hashIndex] = userProfile;
 		sprintf(buffer, "%d %d", SUCCESS, -1*serverFD);
 		userProfile -> serverFD = serverFD;
 		userProfile -> clientFD = -1*serverFD;
 		userProfile -> next = fileTable -> files [hashIndex];
+		printf("OPEN FILE DES: %d OPEN HASH INDEX: %d\n", userProfile->serverFD, hashIndex);	
+				
+		printf("OPEN TABLE STATE: %d\n", fileTable ->files[hash(hashIndex)]->serverFD);
 	}
+
 	return buffer;
 }
 char* myRead(clientData* userProfile)
 {
-	char* stringNum;
+	char* stringNum = (char*)malloc(sizeof(char)*userProfile->numBytes+1);
 	sprintf(stringNum, "%d", userProfile ->numBytes);
 	int bufferLength = userProfile->numBytes +strlen(stringNum) +1;
 	char buffer[userProfile->numBytes];
+	bzero(buffer, userProfile->numBytes);
 	char* metaBuffer = (char*)malloc(sizeof(char)* bufferLength);
 	bzero(metaBuffer, bufferLength);
 	printf("118\n");
-	if(isOpen(userProfile -> serverFD) == FALSE)
+	if(isOpen(userProfile) == FALSE)
 	{
 		printf("ERROR file descriptor does not exist\n");
 		sprintf(metaBuffer,"%d%s", FAIL, strerror(9));
 	}
-	printf("126\n");
 	//in extra credit check that file is allowed to be read from
 	int numRead = read(userProfile -> serverFD, buffer, userProfile -> numBytes);
 	if (numRead <0)
@@ -137,6 +150,7 @@ char* myRead(clientData* userProfile)
 		return metaBuffer;
 	}
 	sprintf(metaBuffer, "%d;%s", numRead+1, buffer);
+	printf("%d %s\n", numRead, buffer); 
 	return metaBuffer;	
 	
 }
@@ -153,7 +167,9 @@ void* clientHandler(void* clientSocket)
 			 buffer = myOpen(userProfile);
 			 break;
 		case 'R':
-			buffer = myRead (userProfile);
+			printf("line 157\n");
+			buffer = myRead(userProfile);
+			printf("line 159\n");
 			break;
 /*		case 'W':
 			myWrite (userProfile);

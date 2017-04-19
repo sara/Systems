@@ -125,7 +125,7 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	int readIndicator = -1;
 	char command [100];
 	int clientSocket = socketToTheMan(hostName);
-	sprintf(command, "%c%d%d", 'R', fildes, (int)nbyte);
+	sprintf(command, "%c%d;%d", 'R', fildes, (int)nbyte);
 	writeIndicator = write (clientSocket, command, strlen(command));
 	if (writeIndicator < 0)
 	{
