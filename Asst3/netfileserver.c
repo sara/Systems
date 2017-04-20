@@ -107,7 +107,7 @@ char* myOpen(clientData* userProfile)
 	if (serverFD < 0)
 	{
 		printf("failed to open file\n");
-		sprintf(buffer, "%d %d", FAIL, errno);
+		sprintf(buffer, "%d,%d,%d", FAIL, errno, h_errno);
 	}
 	else
 	{
@@ -115,15 +115,14 @@ char* myOpen(clientData* userProfile)
 		//printf("myOpen file descriptor: %d, hashIndex %d\n");
 		userProfile -> next = fileTable->files[hashIndex];
 		fileTable->files[hashIndex] = userProfile;
-		sprintf(buffer, "%d %d", SUCCESS, -1*serverFD);
+		sprintf(buffer, "%d,%d,%d,%d", SUCCESS, -1*serverFD, errno, h_errno);
 		userProfile -> serverFD = serverFD;
 		userProfile -> clientFD = -1*serverFD;
-		userProfile -> next = fileTable -> files [hashIndex];
-		printf("OPEN FILE DES: %d OPEN HASH INDEX: %d\n", userProfile->serverFD, hashIndex);	
+	//	printf("OPEN FILE DES: %d OPEN HASH INDEX: %d\n", userProfile->serverFD, hashIndex);	
 				
-		printf("OPEN TABLE STATE: %d\n", fileTable ->files[hash(hashIndex)]->serverFD);
+		//printf("OPEN TABLE STATE: %d\n", fileTable ->files[hash(hashIndex)]->serverFD);
 	}
-
+	
 	return buffer;
 }
 char* myRead(clientData* userProfile)
@@ -135,7 +134,6 @@ char* myRead(clientData* userProfile)
 	bzero(buffer, userProfile->numBytes);
 	char* metaBuffer = (char*)malloc(sizeof(char)* bufferLength);
 	bzero(metaBuffer, bufferLength);
-	printf("118\n");
 	if(isOpen(userProfile) == FALSE)
 	{
 		printf("ERROR file descriptor does not exist\n");
@@ -146,14 +144,23 @@ char* myRead(clientData* userProfile)
 	if (numRead <0)
 	{
 		printf("ERROR reading from file");
-		sprintf(metaBuffer, "%d%d", FAIL, errno);
+		sprintf(metaBuffer, "%d,%d,%d,%d", FAIL, -1, errno, h_errno);
 		return metaBuffer;
 	}
-	sprintf(metaBuffer, "%d;%s", numRead+1, buffer);
-	printf("%d %s\n", numRead, buffer); 
+	sprintf(metaBuffer, "%d,%d,%s", SUCCESS, numRead+1, buffer);
+	//printf("%d %s\n", numRead, buffer); 
 	return metaBuffer;	
 	
 }
+void myClose(clientData* userProfile, char* buffer)
+{
+	int serverFD = 0;
+	sscanf(buffer, "%u,%d", &userProfile->opMode, );
+	if (
+}
+
+
+
 void* clientHandler(void* clientSocket)
 {
 	char* buffer;

@@ -9,16 +9,14 @@
 #include "libnetfiles.h"
 
 static int hostValid = -1;
-char* hostName;
 
 
 int socketToTheMan(char* hostname)
 {
 	hostName = hostname;
-	int clientSocket = -1;
+	clientSocket = -1;
 	int portno = 91128;
-	struct sockaddr_in serverAddressInfo;
-	struct hostent* serverIPAddress = gethostbyname(hostName);
+	serverIPAddress = gethostbyname(hostName);
 	if (serverIPAddress == NULL)
 	{
 		printf("ERROR INVALID HOST NAME\n");
@@ -61,7 +59,7 @@ int netserverinit(char* hostname)
 
 int netopen (const char* pathname, int flags)
 {
-	printf("PERFORMING NET OPEN\n");
+//	printf("PERFORMING NET OPEN\n");
 	char buffer [100];
 	bzero(buffer, 100);
 	int rwIndicator = 0;
@@ -143,6 +141,7 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	if (fildes >=0)
 	{
 		printf("ERROR invalid file descriptor\n");
+		errno = EBADF;
 	}
 	char* buffer = (char*)malloc(sizeof(char)*(int)nbyte+1);// [(int)nbyte+1];
 	bzero(buffer, 100);
