@@ -50,9 +50,11 @@ int netserverinit(char* hostname)
 		hostValid = -1;
 	}
 	else
+	{
 		hostValid = 0;
-	hostName = (char*)malloc(sizeof(char)*strlen(hostname));
-	strcpy(hostName, hostname);
+		hostName = (char*)malloc(sizeof(char)*strlen(hostname));
+		strcpy(hostName, hostname);
+	}
 	return hostValid; 
 }
 
@@ -71,7 +73,8 @@ int netopen (const char* pathname, int flags)
 		h_errno = HOST_NOT_FOUND;
 	}	
 	char command [strlen(pathname)+3];
-	int clientSocket = socketToTheMan(hostName);	
+	int clientSocket = socketToTheMan(hostName);
+	//indicate to server to open file with given flags and path name
 	sprintf(command, "%c%d%s", 'O', flags, pathname);
 	//	command[0] = 'O';
 //	command [1] = flags;
@@ -81,13 +84,15 @@ int netopen (const char* pathname, int flags)
 		printf("ERROR writing to socket");
 	}
 	rwIndicator = read(clientSocket, buffer, 100);
-	sscanf(buffer, "%d,%d,%d,%d", &successIndicator, &fileDes, errno, h_errno);
 	if (rwIndicator <0)
 	{
 		close(clientSocket);
 		printf("ERROR: failed to read\n");
 		return -1;
 	}
+	printf("buffer client: %s\n");
+	sscanf(buffer, "%d,%d,%d,%d", &successIndicator, &fileDes, &errno, &h_errno);
+	printf("line 94\n");
 	if(successIndicator == FALSE)
 	{
 		close(clientSocket);
@@ -103,13 +108,19 @@ int netclose(int fildes)
 	bzero(buffer, 100);
 	int rwIndicator = 0;
 	int clientSocket = socketToTheMan(hostName);
+	if (fildes >= 0)
+	{	
+		printf("ERROR invalid file descriptor");
+		errno = EBADF;
+		return -1;
+	}
 	if (clientSocket < 0)
 	{
 		printf("ERROR host not found\n");
-		return -1;
 		h_errno = HOST_NOT_FOUND;
+		return -1;
 	}
-	sprintf(buffer, "%c,%d", 'C', fd);
+	sprintf(buffer, "%c,%d", 'C', fildes);
 	rwIndicator = write(clientSocket, buffer, strlen(buffer));
 	if (rwIndicator <0)
 	{
@@ -117,7 +128,7 @@ int netclose(int fildes)
 		return -1;
 	}
 	bzero(buffer, 100);
-	rwInidcator = read(clientSocket, buffer, 100);
+	rwIndicator = read(clientSocket, buffer, 100);
 	if (rwIndicator < 0)
 	{
 		printf("ERROR failed to read\n");
@@ -137,11 +148,13 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	{
 		printf("ERROR host not found\n");
 		h_errno = HOST_NOT_FOUND;
+		return -1;
 	}
 	if (fildes >=0)
 	{
 		printf("ERROR invalid file descriptor\n");
 		errno = EBADF;
+		return -1;
 	}
 	char* buffer = (char*)malloc(sizeof(char)*(int)nbyte+1);// [(int)nbyte+1];
 	bzero(buffer, 100);
@@ -155,6 +168,9 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	if (rwIndicator < 0)
 	{
 		printf("ERROR writing to socket\n");
+		close(clientSocket);
+		return -1;
+ 		//error codes? should i return?
 	}
 	rwIndicator = read(clientSocket, buffer,  nbyte+1);
 	if(rwIndicator < 0)

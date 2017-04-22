@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <fcntl.h>
 
+
+//NEED TO ADD IN CLIENT ID TO HASH TABLE!!!!
 typedef enum {FAIL, SUCCESS} status;
 typedef enum {FALSE, TRUE} boolean;
 typedef struct ClientData
@@ -59,7 +61,9 @@ clientData* makeClient(char* command)
 			//printf("FILE DES: %d\n", userProfile-> numBytes);
 			//printf("NUM BYTES: %d\n", userProfile->numBytes);
 			break;
-
+		case 'C':
+			userProfile->serverFD = sscanf(command+1, "%d", &fileDes);
+			break;
 	}
 	return userProfile;
 }
@@ -107,7 +111,7 @@ char* myOpen(clientData* userProfile)
 	if (serverFD < 0)
 	{
 		printf("failed to open file\n");
-		sprintf(buffer, "%d,%d,%d", FAIL, errno, h_errno);
+		sprintf(buffer, "%d,%d,%d,%d", FAIL, 0, errno, h_errno);
 	}
 	else
 	{
@@ -147,19 +151,43 @@ char* myRead(clientData* userProfile)
 		sprintf(metaBuffer, "%d,%d,%d,%d", FAIL, -1, errno, h_errno);
 		return metaBuffer;
 	}
-	sprintf(metaBuffer, "%d,%d,%s", SUCCESS, numRead+1, buffer);
+	sprintf(metaBuffer, "%d,%d,%s", SUCCESS, numRead, buffer);
 	//printf("%d %s\n", numRead, buffer); 
 	return metaBuffer;	
 	
 }
-void myClose(clientData* userProfile, char* buffer)
+char* myClose(clientData* userProfile)
 {
-	int serverFD = 0;
-	sscanf(buffer, "%u,%d", &userProfile->opMode, );
-	if (
+	int serverFD = userProfile ->serverFD;;
+	int filedes = -1;
+	clientData *prev, *curr;
+	int closeResult;
+	char* buffer = (char*)malloc(sizeof(char)*100);;
+	bzero(buffer, 100);
+	int hashIndex = hash(serverFD);
+	curr = fileTable->files [hashIndex];
+	
+	while (curr!= NULL && curr->serverFD!=serverFD)
+	{
+		prev = curr;
+		curr = curr->next;
+	}
+	//if file is not opened
+	if (curr == NULL)
+	{
+		sprintf(buffer, "%d,%d", FAIL, EBADF, h_errno);
+		return buffer;
+	}
+	prev->next = curr->next;	
+	closeResult = close(serverFD);
+	if (closeResult < 0)
+	{
+		sprintf(buffer, "%d%d", FAIL, errno, h_errno);
+		return buffer;
+	}
+	sprintf(buffer, "%d%d", SUCCESS, errno, h_errno);
+	return buffer;
 }
-
-
 
 void* clientHandler(void* clientSocket)
 {
@@ -176,11 +204,12 @@ void* clientHandler(void* clientSocket)
 		case 'R':
 			buffer = myRead(userProfile);
 			break;
-/*		case 'W':
-			myWrite (userProfile);
+//		case 'W':
+//			myWrite (userProfile);
 		case 'C':
-			myClose(userProfile);
-*/	}
+			buffer = myClose(userProfile);
+			break;
+	}
 		write(clientSockFD, buffer, strlen(buffer)+1);
 		pthread_exit(NULL);
 }
