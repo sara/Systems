@@ -75,7 +75,7 @@ int netopen (const char* pathname, int flags)
 	char command [strlen(pathname)+3];
 	int clientSocket = socketToTheMan(hostName);
 	//indicate to server to open file with given flags and path name
-	sprintf(command, "%c%d%s", 'O', flags, pathname);
+	sprintf(command, "%c,%d,%s", 'O', flags, pathname);
 	//	command[0] = 'O';
 //	command [1] = flags;
 	rwIndicator = write(clientSocket, command, strlen(command));
@@ -192,8 +192,56 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	return numByte;
 	}
 
-
-
+ssize_t netwrite (int fildes, void* buf, size_t nbyte)
+{
+	if (hostValid != 0)
+	{
+		printf("ERROR host not found\n");
+		h_errno = HOST_NOT_FOUND;
+		return -1;
+	}
+	if (fildes >=0)
+	{
+		printf("ERROR invalid file descriptor\n");
+		errno = EBADF;
+		return -1;
+	}
+	char* command = (char*)malloc(sizeof(char)*(int)nbyte+1);// [(int)nbyte+1];
+	char* buffer = (char*)malloc(sizeof(char)*100);
+	bzero(buffer, 100);
+	int rwIndicator = -1;
+	int clientSocket = socketToTheMan(hostName);
+	int numByte=0;
+	sprintf(command, "%c,%d,%d,%s", 'W', fildes, (int)nbyte, (char*)buf);
+	char* readString;
+	rwIndicator = write (clientSocket, command, strlen(command));
+	if (rwIndicator < 0)
+	{
+		printf("ERROR writing to socket\n");
+		close(clientSocket);
+		return -1;
+ 		//error codes? should i return?
+	}
+	rwIndicator = read(clientSocket, buffer,  5);
+	if(rwIndicator < 0)
+	{
+		close(clientSocket);
+		printf("ERROR: failed to read %s\n", strerror(errno));
+		return -1;
+	}
+	
+	if (((char*)buf)[0] == FALSE)
+	{
+		sscanf(buf, "%d,%d,%d", &rwIndicator, &numByte, &errno, &h_errno);	
+		sprintf("WRITE FAILED %s %s\n", strerror(errno), strerror(h_errno));
+		close(clientSocket);
+		return -1;
+	}
+	sscanf(buf, "%d,%d", &rwIndicator, &numByte);
+	close(clientSocket);
+	printf("libnet numWritten: %d\n", numByte);
+	return numByte;
+	}
 
 
 

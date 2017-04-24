@@ -17,6 +17,7 @@ typedef enum {FALSE, TRUE} boolean;
 typedef struct ClientData
 {
 	char* pathName;
+	char* writeString;
 	int fileMode;
 	int opMode;
 	int privacyMode;
@@ -32,11 +33,12 @@ typedef struct dataTable
 dataTable* fileTable;
 clientData* makeClient(char* command)
 {
-	printf("command: %s\n", command);
+	//printf("command: %s\n", command);
 	char buffer [1000];
 	bzero(buffer, 1000);
 	int fileMode, fileDes, nbyte;
 	char* path;
+	char* writeString;
 	char userMode;
 	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
 	userProfile -> opMode = command[0];
@@ -46,11 +48,12 @@ clientData* makeClient(char* command)
 		case 'O':
 			//sscanf(command+1, "%d", fileMode);
 			path = (char*)malloc(sizeof(char)*strlen(command)-2);
-			sscanf(command, "%c%d%s", &userMode, &fileMode, path);
+			sscanf(command, "%c,%d,%s", &userMode, &fileMode, path);
 			//strcpy(path, command+2);
 			//printf("file mode: %d, path: %s\n", fileMode, path);
 			userProfile -> fileMode = fileMode;
 			userProfile -> pathName = path;	
+			printf("PATH: %s\n", path);
 			break;
 		case 'R':
 			sscanf(command+1, "%d;%d", &fileDes, &nbyte);
@@ -64,6 +67,15 @@ clientData* makeClient(char* command)
 		case 'C':
 			userProfile->serverFD = sscanf(command+1, "%d", &fileDes);
 			break;
+		case 'W':
+			printf("COMMAND: %s\n", command);
+			writeString = (char*)malloc(sizeof(char)*strlen(command));
+			sscanf(command+2, "%d,%d", &fileDes, &nbyte);
+			strncpy(writeString, command+strlen(command)-nbyte, nbyte);
+			printf("FILE DESCRIPTOR: %d NBYTE: %d\n", fileDes, nbyte);
+			userProfile -> clientFD = fileDes;
+			userProfile -> serverFD = -1*fileDes;
+			userProfile -> writeString = writeString;
 	}
 	return userProfile;
 }
@@ -89,13 +101,13 @@ int hash (int fileDes)
 boolean isOpen(clientData* userProfile)
 {
 	int hashIndex = hash(userProfile->serverFD);
-	printf("isOpen fileDes: %d isOpen hash index: %d\n", userProfile->serverFD, hashIndex);
+	//printf("isOpen fileDes: %d isOpen hash index: %d\n", userProfile->serverFD, hashIndex);
 	//printf("READ STATUS: %d\n", fileTable->files[hashIndex]->serverFD);
 	
 	clientData* curr = fileTable->files[hash(userProfile->serverFD)];
 	while (curr!= NULL)
 	{
-		printf("TABLE STATE: %d\n", fileTable ->files[hash(userProfile->serverFD)]->serverFD);
+		//printf("TABLE STATE: %d\n", fileTable ->files[hash(userProfile->serverFD)]->serverFD);
 		if (curr ->serverFD == userProfile->serverFD)
 			return TRUE;
 		curr = curr->next;
@@ -156,6 +168,24 @@ char* myRead(clientData* userProfile)
 	return metaBuffer;	
 	
 }
+char* myWrite (clientData* userProfile)
+{
+	printf("CLIENT WRITE STRING: %s\n", userProfile->writeString);
+	char* buffer = (char*)malloc(sizeof(char)*100);
+	bzero(buffer, 100);
+	int numWritten = write(userProfile ->serverFD, userProfile -> writeString, userProfile -> numBytes);
+	if (numWritten < 0)
+	{
+		printf("error writing  %s file descriptor = %d\n", strerror(errno), userProfile ->serverFD);
+		sprintf(buffer, "%d,%d,%d", FAIL, errno, h_errno); 
+	}
+	else
+	{
+		printf("NUM WRITTEN: %d\n", numWritten);	
+		sprintf(buffer, "%d,%d,%d", SUCCESS, numWritten, errno);
+	}
+	return buffer;
+}
 char* myClose(clientData* userProfile)
 {
 	int serverFD = userProfile ->serverFD;;
@@ -188,7 +218,6 @@ char* myClose(clientData* userProfile)
 	sprintf(buffer, "%d%d", SUCCESS, errno, h_errno);
 	return buffer;
 }
-
 void* clientHandler(void* clientSocket)
 {
 	char* buffer;
@@ -204,8 +233,9 @@ void* clientHandler(void* clientSocket)
 		case 'R':
 			buffer = myRead(userProfile);
 			break;
-//		case 'W':
-//			myWrite (userProfile);
+		case 'W':
+			buffer = myWrite (userProfile);
+			break;
 		case 'C':
 			buffer = myClose(userProfile);
 			break;
