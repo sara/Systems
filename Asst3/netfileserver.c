@@ -53,7 +53,6 @@ clientData* makeClient(char* command)
 			//printf("file mode: %d, path: %s\n", fileMode, path);
 			userProfile -> fileMode = fileMode;
 			userProfile -> pathName = path;	
-			printf("PATH: %s\n", path);
 			break;
 		case 'R':
 			sscanf(command+1, "%d;%d", &fileDes, &nbyte);
@@ -68,14 +67,13 @@ clientData* makeClient(char* command)
 			userProfile->serverFD = sscanf(command+1, "%d", &fileDes);
 			break;
 		case 'W':
-			printf("COMMAND: %s\n", command);
 			writeString = (char*)malloc(sizeof(char)*strlen(command));
 			sscanf(command+2, "%d,%d", &fileDes, &nbyte);
 			strncpy(writeString, command+strlen(command)-nbyte, nbyte);
-			printf("FILE DESCRIPTOR: %d NBYTE: %d\n", fileDes, nbyte);
 			userProfile -> clientFD = fileDes;
 			userProfile -> serverFD = -1*fileDes;
 			userProfile -> writeString = writeString;
+			userProfile -> numBytes = nbyte; 
 	}
 	return userProfile;
 }
@@ -170,13 +168,13 @@ char* myRead(clientData* userProfile)
 }
 char* myWrite (clientData* userProfile)
 {
-	printf("CLIENT WRITE STRING: %s\n", userProfile->writeString);
+	printf("string: %s\n", userProfile -> writeString);
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
-	int numWritten = write(userProfile ->serverFD, userProfile -> writeString, userProfile -> numBytes);
+	int numWritten = write(userProfile ->serverFD, userProfile->writeString, 21);
 	if (numWritten < 0)
 	{
-		printf("error writing  %s file descriptor = %d\n", strerror(errno), userProfile ->serverFD);
+		printf("error writing  %s file descriptor = %d\n", strerror(errno), (ssize_t)userProfile ->serverFD);
 		sprintf(buffer, "%d,%d,%d", FAIL, errno, h_errno); 
 	}
 	else
@@ -184,6 +182,7 @@ char* myWrite (clientData* userProfile)
 		printf("NUM WRITTEN: %d\n", numWritten);	
 		sprintf(buffer, "%d,%d,%d", SUCCESS, numWritten, errno);
 	}
+	printf("buffer: %s\n", buffer);
 	return buffer;
 }
 char* myClose(clientData* userProfile)

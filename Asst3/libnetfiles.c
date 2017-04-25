@@ -58,7 +58,6 @@ int netserverinit(char* hostname)
 	return hostValid; 
 }
 
-
 int netopen (const char* pathname, int flags)
 {
 //	printf("PERFORMING NET OPEN\n");
@@ -142,6 +141,7 @@ int netclose(int fildes)
 	sscanf(buffer, "%d,%d,%d", &rwIndicator, &errno, &h_errno);
 	return 0;
 }
+
 ssize_t netread (int fildes, void* buf, size_t nbyte)
 {
 	if (hostValid != 0)
@@ -222,7 +222,7 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 		return -1;
  		//error codes? should i return?
 	}
-	rwIndicator = read(clientSocket, buffer,  5);
+	rwIndicator = read(clientSocket, buffer, sizeof(buffer));
 	if(rwIndicator < 0)
 	{
 		close(clientSocket);
@@ -230,16 +230,17 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 		return -1;
 	}
 	
-	if (((char*)buf)[0] == FALSE)
+	if (((char*)buffer)[0] == FALSE)
 	{
-		sscanf(buf, "%d,%d,%d", &rwIndicator, &numByte, &errno, &h_errno);	
+		sscanf(buffer, "%d,%d,%d", &rwIndicator,  &errno, &h_errno);	
 		sprintf("WRITE FAILED %s %s\n", strerror(errno), strerror(h_errno));
 		close(clientSocket);
 		return -1;
 	}
-	sscanf(buf, "%d,%d", &rwIndicator, &numByte);
+	printf("CLIENT SIDE BUFFER RECEIVED: %s\n", (char*)buffer);
+	sscanf(buffer, "%d,%d,%d", &rwIndicator, &numByte, &errno);
 	close(clientSocket);
-	printf("libnet numWritten: %d\n", numByte);
+	printf("libnet numWritten: %d %d %d\n", rwIndicator, numByte, errno);
 	return numByte;
 	}
 
