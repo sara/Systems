@@ -171,7 +171,7 @@ char* myWrite (clientData* userProfile)
 	printf("string: %s\n", userProfile -> writeString);
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
-	int numWritten = write(userProfile ->serverFD, userProfile->writeString, 21);
+	int numWritten = write(userProfile ->serverFD, userProfile->writeString, userProfile -> numBytes);
 	if (numWritten < 0)
 	{
 		printf("error writing  %s file descriptor = %d\n", strerror(errno), (ssize_t)userProfile ->serverFD);
