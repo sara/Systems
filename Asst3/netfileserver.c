@@ -33,7 +33,7 @@ typedef struct dataTable
 }dataTable;
 dataTable* fileTable;
 pthread_mutex_t fileTableMutex;
-clientData* makeClient(char* command)
+clientData* makeClient(char* commandLength)
 {
 	//printf("command: %s\n", command);
 	char buffer [1000];
@@ -110,19 +110,17 @@ boolean checkPermissions(clientData* userProfile)
 		{
 			if(curr->privacyMode == TRANSACTION)
 			{
+				printf("ERROR file already open in transaction mode\n");
 				return FALSE;
 			}
 			if (curr->privacyMode == EXCLUSIVE)
 			{
-				if (userProfile -> opMode == 'R'
-				{
-					return TRUE;
-				}
-				if(curr->opMode == 'R'
+				if (userProfile -> opMode == 'R' || curr->opMode == 'R')
 				{
 					return TRUE;
 				}
 			}
+			printf("ERROR file already open for writing in exclusive mode\n");
 			return FALSE;
 		}
 	 }
@@ -284,8 +282,8 @@ void* clientHandler(void* clientSocket)
 {
 	char* buffer;
 	int clientSockFD = *(int*)clientSocket;
-	char* command = (char*)malloc(sizeof(char)*1003);
-	read(clientSockFD, command, 1003);
+	char* commandLength = (char*)malloc(sizeof(char)*4);
+	read(clientSockFD, commandLength, 4);
 	clientData* userProfile = makeClient(command);
 	switch (userProfile -> opMode)
 	{

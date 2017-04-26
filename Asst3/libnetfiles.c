@@ -171,7 +171,7 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	char command [100];
 	int clientSocket = socketToTheMan(hostName);
 	int numByte=0;
-	sprintf(command, "%c%d;%d", 'R', fildes, (int)nbyte);
+	sprintf(command, "%d%c%d", (int)nbyte, fildes, 'R');
 	char* readString;
 	rwIndicator = write (clientSocket, command, strlen(command));
 	if (rwIndicator < 0)
@@ -252,13 +252,3 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 	printf("libnet numWritten: %d %d %d\n", rwIndicator, numByte, errno);
 	return numByte;
 	}
-
-
-
-
-
-
-
-
-
-
