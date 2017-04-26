@@ -9,7 +9,7 @@
 #include "libnetfiles.h"
 
 static int hostValid = -1;
-
+static mode connectionMode = -1;
 
 int socketToTheMan(char* hostname)
 {
@@ -42,16 +42,27 @@ int socketToTheMan(char* hostname)
 	return clientSocket;
 }
 
-int netserverinit(char* hostname)
+int netserverinit(char* hostname, mode privacyMode)
 {
 	struct hostent* serverIP = gethostbyname(hostname);
 	if (serverIP == NULL)
 	{
+		printf ("ERROR invalid hostname\n");
+		errno = EINVAL;
+		h_errno = HOST_NOT_FOUND;
+		hostValid = -1;
+	}
+	else if (privacyMode <0 || privacyMode >2)
+	{
+		printf ("ERROR invalid connection mode\n");
+		errno = EINVAL;
+		h_errno = INVALID_FILE_MODE;
 		hostValid = -1;
 	}
 	else
 	{
 		hostValid = 0;
+		connectionMode = privacyMode;
 		hostName = (char*)malloc(sizeof(char)*strlen(hostname));
 		strcpy(hostName, hostname);
 	}
@@ -74,7 +85,7 @@ int netopen (const char* pathname, int flags)
 	char command [strlen(pathname)+3];
 	int clientSocket = socketToTheMan(hostName);
 	//indicate to server to open file with given flags and path name
-	sprintf(command, "%c,%d,%s", 'O', flags, pathname);
+	sprintf(command, "%c,%d,%d,%s", 'O', flags, connectionMode, pathname);
 	//	command[0] = 'O';
 //	command [1] = flags;
 	rwIndicator = write(clientSocket, command, strlen(command));
@@ -146,8 +157,6 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 {
 	if (hostValid != 0)
 	{
-		printf("ERROR host not found\n");
-		h_errno = HOST_NOT_FOUND;
 		return -1;
 	}
 	if (fildes >=0)

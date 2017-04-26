@@ -14,6 +14,8 @@
 //NEED TO ADD IN CLIENT ID TO HASH TABLE!!!!
 typedef enum {FAIL, SUCCESS} status;
 typedef enum {FALSE, TRUE} boolean;
+typedef enum {UNRESTRICTED, EXCLUSIVE, TRANSACTION} mode;
+
 typedef struct ClientData
 {
 	char* pathName;
@@ -31,15 +33,15 @@ typedef struct dataTable
 	clientData* files [100];
 }dataTable;
 dataTable* fileTable;
+pthread_mutex_t fileTableMutex;
 clientData* makeClient(char* command)
 {
 	//printf("command: %s\n", command);
 	char buffer [1000];
 	bzero(buffer, 1000);
 	int fileMode, fileDes, nbyte;
-	char* path;
-	char* writeString;
-	char userMode;
+	char *path, *writeString, *garbageString;
+	char privacyMode, userMode;
 	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
 	userProfile -> opMode = command[0];
 	userProfile -> next = NULL;
@@ -48,11 +50,12 @@ clientData* makeClient(char* command)
 		case 'O':
 			//sscanf(command+1, "%d", fileMode);
 			path = (char*)malloc(sizeof(char)*strlen(command)-2);
-			sscanf(command, "%c,%d,%s", &userMode, &fileMode, path);
+			sscanf(command, "%c,%d,%d,%s", &userMode, &fileMode, &privacyMode, path);
 			//strcpy(path, command+2);
 			//printf("file mode: %d, path: %s\n", fileMode, path);
 			userProfile -> fileMode = fileMode;
 			userProfile -> pathName = path;	
+			userProfile -> privacyMode = privacyMode;
 			break;
 		case 'R':
 			sscanf(command+1, "%d;%d", &fileDes, &nbyte);
@@ -69,7 +72,10 @@ clientData* makeClient(char* command)
 		case 'W':
 			writeString = (char*)malloc(sizeof(char)*strlen(command));
 			sscanf(command+2, "%d,%d", &fileDes, &nbyte);
-			strncpy(writeString, command+strlen(command)-nbyte, nbyte);
+			garbageString = (char*)malloc(sizeof(char) * (nbyte+(fileDes*-1)+4));
+			sprintf(garbageString, "%c,%d,%d", 'W', fileDes, nbyte);
+			strncpy(writeString, command+strlen(garbageString), strlen(writeString)-strlen(garbageString));
+			free(garbageString);
 			userProfile -> clientFD = fileDes;
 			userProfile -> serverFD = -1*fileDes;
 			userProfile -> writeString = writeString;
@@ -95,6 +101,33 @@ int hash (int fileDes)
 {
 	int hash = fileDes%100;
 	return hash;
+}
+boolean checkPermissions(clientData* userProfile)
+{
+	 clientData *curr, *prev;
+	 for (curr = fileTable->files[hash(userProfile->serverFD)]; curr!=NULL; curr = curr-> next)
+	 {
+		if (curr->serverFD == userProfile->serverFD)
+		{
+			if(curr->privacyMode == TRANSACTION)
+			{
+				return FALSE;
+			}
+			if (curr->privacyMode == EXCLUSIVE)
+			{
+				if (userProfile -> opMode == 'R'
+				{
+					return TRUE;
+				}
+				if(curr->opMode == 'R'
+				{
+					return TRUE;
+				}
+			}
+			return FALSE;
+		}
+	 }
+	 return TRUE;
 }
 boolean isOpen(clientData* userProfile)
 {
@@ -123,6 +156,19 @@ char* myOpen(clientData* userProfile)
 		printf("failed to open file\n");
 		sprintf(buffer, "%d,%d,%d,%d", FAIL, 0, errno, h_errno);
 	}
+	
+	//check file table to make sure the operation is permitted with in case or preexisting files with 
+	//prohibive privacy permissions
+	
+	if (!checkPermissions)
+	{
+		printf("PERMISSION DENIED\n");
+		errno = EACCES;
+		sprintf(buffer, "%d,%d,%d,%d", FAIL, 0, errno, h_errno);
+		return buffer;
+	}
+	
+	//user is allowed to proceed, set up the open
 	else
 	{
 		int hashIndex = (serverFD)%100;
@@ -151,10 +197,21 @@ char* myRead(clientData* userProfile)
 	if(isOpen(userProfile) == FALSE)
 	{
 		printf("ERROR file descriptor does not exist\n");
-		sprintf(metaBuffer,"%d%s", FAIL, strerror(9));
+		sprintf(metaBuffer,"%d,%d,%d,%d", FAIL, -1, EBADF, h_errno);
+		return metaBuffer;
 	}
-	//in extra credit check that file is allowed to be read from
+
+	if (!checkPermissions)
+	{
+		printf("ERROR pemission denied\n");
+		sprintf(metaBuffer, "%d,%d,%d,%d", FAIL, -1, EACCES, h_errno);
+		return metaBuffer;
+	}
+	
+	
+	pthread_mutex_lock(&fileTableMutex);
 	int numRead = read(userProfile -> serverFD, buffer, userProfile -> numBytes);
+	pthread_mutex_lock(&fileTableMutex);
 	if (numRead <0)
 	{
 		printf("ERROR reading from file");
@@ -168,10 +225,17 @@ char* myRead(clientData* userProfile)
 }
 char* myWrite (clientData* userProfile)
 {
-	printf("string: %s\n", userProfile -> writeString);
+	//printf("string: %s\n", userProfile -> writeString);
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
+	if (!checkPermissions(userProfile))
+	{
+		sprintf(buffer, "%d,%d,%d", FAIL, EACCES, h_errno);
+		return buffer;
+	}
+	pthread_mutex_lock(&fileTableMutex);
 	int numWritten = write(userProfile ->serverFD, userProfile->writeString, userProfile -> numBytes);
+	pthread_mutex_unlock(&fileTableMutex);
 	if (numWritten < 0)
 	{
 		printf("error writing  %s file descriptor = %d\n", strerror(errno), (ssize_t)userProfile ->serverFD);
@@ -253,6 +317,7 @@ int main (int argc, char** argv)
 	char buffer [5000];
 	struct sockaddr_in serverAddressInfo;
 	struct sockaddr_in clientAddressInfo;
+	pthread_mutex_intit(&fileTableMutex, NULL);
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
