@@ -33,52 +33,59 @@ typedef struct dataTable
 }dataTable;
 dataTable* fileTable;
 pthread_mutex_t fileTableMutex;
-clientData* makeClient(char* commandLength)
+clientData* makeClient(int clientSockFD, int commandLength)
 {
 	//printf("command: %s\n", command);
-	char buffer [1000];
-	bzero(buffer, 1000);
-	int fileMode, fileDes, nbyte;
-	char *path, *writeString, *garbageString;
-	char privacyMode, userMode;
+	char* buffer = (char*)malloc(sizeof(char)*commandLength); 
+	bzero(buffer, commandLength);;
+	read (clientSockFD, buffer, strlen(buffer));
+	//FINISH READING IN THE DATA FOR ALL FUNCTIONS SO YOU HAVE EXACT NUMBERS FOR BUFFER READ SIZES
+	char opMode = buffer[sizeof(int)];
+	char *path;
+	
 	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
-	userProfile -> opMode = command[0];
+	userProfile->opMode = opMode;
 	userProfile -> next = NULL;
 	switch (userProfile -> opMode)
 	{
 		case 'O':
 			//sscanf(command+1, "%d", fileMode);
-			path = (char*)malloc(sizeof(char)*strlen(command)-2);
-			sscanf(command, "%c,%d,%d,%s", &userMode, &fileMode, &privacyMode, path);
-			//strcpy(path, command+2);
+			path = (char*)malloc(sizeof(char)*commandLength+1);
+			strcpy(path, buffer+(3*sizeof(int)+1));
 			//printf("file mode: %d, path: %s\n", fileMode, path);
-			userProfile -> fileMode = fileMode;
+			userProfile -> fileMode = buffer[sizeof(int)+1];
 			userProfile -> pathName = path;	
-			userProfile -> privacyMode = privacyMode;
+			userProfile -> privacyMode = buffer[2*sizeof(int)+1];
 			break;
 		case 'R':
-			sscanf(command+1, "%d;%d", &fileDes, &nbyte);
-			userProfile -> serverFD = fileDes*-1;
-			userProfile -> clientFD = fileDes;
-			userProfile -> numBytes = nbyte;
+			//sscanf(command+1, "%d;%d", &fileDe`s, &nbyte);
+			userProfile -> clientFD = buffer[sizeof(int)+1];;
+			userProfile -> serverFD = -1*userProfile -> clientFD;
+			userProfile -> numBytes = buffer[2*sizeof(int)+1];
 			//printf("fildes: %d nbyte: %d\n", fileDes, nbyte);
 			//printf("FILE DES: %d\n", userProfile-> numBytes);
 			//printf("NUM BYTES: %d\n", userProfile->numBytes);
 			break;
 		case 'C':
-			userProfile->serverFD = sscanf(command+1, "%d", &fileDes);
+			userProfile -> clientFD = buffer[sizeof(int)+1];
+			userProfile -> serverFD  = -1*userProfile ->serverFD;
+			//userProfile->serverFD = sscanf(command+1, "%d", &fileDes);
 			break;
 		case 'W':
-			writeString = (char*)malloc(sizeof(char)*strlen(command));
-			sscanf(command+2, "%d,%d", &fileDes, &nbyte);
-			garbageString = (char*)malloc(sizeof(char) * (nbyte+(fileDes*-1)+4));
-			sprintf(garbageString, "%c,%d,%d", 'W', fileDes, nbyte);
-			strncpy(writeString, command+strlen(garbageString), strlen(writeString)-strlen(garbageString));
-			free(garbageString);
-			userProfile -> clientFD = fileDes;
-			userProfile -> serverFD = -1*fileDes;
+
+
+			//writeString = (char*)malloc(sizeof(char)*strlen(command));
+			//sscanf(command+2, "%d,%d", &fileDes, &nbyte);
+			//garbageString = (char*)malloc(sizeof(char) * (nbyte+(fileDes*-1)+4));
+			//sprintf(garbageString, "%c,%d,%d", 'W', fileDes, nbyte);
+			//strncpy(writeString, command+strlen(garbageString), strlen(writeString)-strlen(garbageString));
+			//free(garbageString);
+			userProfile -> clientFD = buffer[sizeof(int)+1];
+			userProfile -> serverFD = -1*userProfile->clientFD;
+			userProfile -> numBytes = buffer[2*sizeof(int)+1];
+			char* writeString = (char*)malloc(sizeof(char)*userProfile->numBytes+1);	
+			strcpy(writeString, buffer+3*sizeof(int)+1);
 			userProfile -> writeString = writeString;
-			userProfile -> numBytes = nbyte; 
 	}
 	return userProfile;
 }
@@ -284,7 +291,7 @@ void* clientHandler(void* clientSocket)
 	int clientSockFD = *(int*)clientSocket;
 	char* commandLength = (char*)malloc(sizeof(char)*4);
 	read(clientSockFD, commandLength, 4);
-	clientData* userProfile = makeClient(command);
+	clientData* userProfile = makeClient(clientSockFD, atoi(commandLength));
 	switch (userProfile -> opMode)
 	{
 		case 'O':
@@ -314,7 +321,7 @@ int main (int argc, char** argv)
 	char buffer [5000];
 	struct sockaddr_in serverAddressInfo;
 	struct sockaddr_in clientAddressInfo;
-	pthread_mutex_intit(&fileTableMutex, NULL);
+	pthread_mutex_init(&fileTableMutex, NULL);
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)

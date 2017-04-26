@@ -82,10 +82,18 @@ int netopen (const char* pathname, int flags)
 		printf ("ERROR host not found\n");
 		h_errno = HOST_NOT_FOUND;
 	}	
-	char command [strlen(pathname)+3];
+	//character array the size of the path name (include a +1 for the terminating null character), then three integers to indicate privacy mode and read/write and indicate how long the string is, and a character to indicate it's an open operation
+	char* command = (char*)malloc(sizeof (char)* (strlen(pathname)+1+1+3*sizeof(int)));
 	int clientSocket = socketToTheMan(hostName);
 	//indicate to server to open file with given flags and path name
-	sprintf(command, "%c,%d,%d,%s", 'O', flags, connectionMode, pathname);
+	command[0] = (int)sizeof(command)+1;
+	command[sizeof(int)] = 'O';
+	command[sizeof(int)+1] = flags;
+	command[2*sizeof(int)+1] = connectionMode;
+//	command[3*sizeof(int)+1] = pathname;
+	strcpy(command+(3*sizeof(int)+1), pathname);
+	
+	//strcpy(command "%c,%d,%d,%s", 'O', flags, connectionMode, pathname);
 	//	command[0] = 'O';
 //	command [1] = flags;
 	rwIndicator = write(clientSocket, command, strlen(command));
@@ -114,8 +122,6 @@ int netopen (const char* pathname, int flags)
 
 int netclose(int fildes)
 {
-	char buffer [100];
-	bzero(buffer, 100);
 	int rwIndicator = 0;
 	int clientSocket = socketToTheMan(hostName);
 	if (fildes >= 0)
@@ -130,13 +136,19 @@ int netclose(int fildes)
 		h_errno = HOST_NOT_FOUND;
 		return -1;
 	}
-	sprintf(buffer, "%c,%d", 'C', fildes);
-	rwIndicator = write(clientSocket, buffer, strlen(buffer));
+	
+	char* command = (char*)malloc(2*sizeof(int)+1);		
+	command[0] = sizeof(command)+1;
+	command[sizeof(int)] = 'C';
+	command [sizeof(int)+1] = fildes;
+	//sprintf(buffer, "%c,%d", 'C', fildes);
+	rwIndicator = write(clientSocket, command, 2*sizeof(int)+1);
 	if (rwIndicator <0)
 	{
 		printf("ERROR failed to write\n");
 		return -1;
 	}
+	char buffer [100];
 	bzero(buffer, 100);
 	rwIndicator = read(clientSocket, buffer, 100);
 	if (rwIndicator < 0)
@@ -165,15 +177,26 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 		errno = EBADF;
 		return -1;
 	}
-	char* buffer = (char*)malloc(sizeof(char)*(int)nbyte+1);// [(int)nbyte+1];
-	bzero(buffer, 100);
-	int rwIndicator = -1;
-	char command [100];
+	//allocate enough space for the total size of the command, amount of bytes you want to read, a file descriptor, indicator that you want to read, and a null terminator
+	char* command= (char*)malloc(2*sizeof(int)+3);// [(int)nbyte+1];
+	char* buffer = (char*)malloc(sizeof(char)*nbyte+1);
+	bzero(buffer, strlen(buffer));
+	int rwIndicatoror = -1;
+	int numByte = -1;
 	int clientSocket = socketToTheMan(hostName);
-	int numByte=0;
-	sprintf(command, "%d%c%d", (int)nbyte, fildes, 'R');
-	char* readString;
-	rwIndicator = write (clientSocket, command, strlen(command));
+	
+	command[0] = 3*sizeof(int)+3;
+	command[sizeof(int)] = 'R';
+	command[sizeof(int)+1] = fildes;
+	command [2*sizeof(int)+1] = nbyte;
+	
+	char readString [nbyte];
+	//strcpy (command, (char*)buf);
+
+	//int numByte=0;
+	//sprintf(command, "%d%c%d", (int)nbyte, fildes, 'R');
+	//char* readString;
+	int rwIndicator = write (clientSocket, command, strlen(command));
 	if (rwIndicator < 0)
 	{
 		printf("ERROR writing to socket\n");
@@ -215,13 +238,20 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 		errno = EBADF;
 		return -1;
 	}
-	char* command = (char*)malloc(sizeof(char)*(int)nbyte+1);// [(int)nbyte+1];
+	//length of whole command, a null byte, number of bytes to write, string to write, character to indicate write, file descriptor
+	char* command = (char*)malloc(sizeof(char)*(nbyte +1+1+3*sizeof(int)));// [(int)nbyte+1];
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
 	int rwIndicator = -1;
 	int clientSocket = socketToTheMan(hostName);
+	
+	command[0] = nbyte+2+3*sizeof(int);
+	command[sizeof(int)] = 'W';
+	command [sizeof(int)+1] = fildes;
+	command[2*sizeof(int)+1] = nbyte;
+	strcpy (command+3*sizeof(int)+1, (char*)buf);
 	int numByte=0;
-	sprintf(command, "%c,%d,%d,%s", 'W', fildes, (int)nbyte, (char*)buf);
+	//sprintf(command, "%c,%d,%d,%s", 'W', fildes, (int)nbyte, (char*)buf);
 	char* readString;
 	rwIndicator = write (clientSocket, command, strlen(command));
 	if (rwIndicator < 0)
