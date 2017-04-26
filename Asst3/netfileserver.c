@@ -11,7 +11,6 @@
 #include <fcntl.h>
 
 
-//NEED TO ADD IN CLIENT ID TO HASH TABLE!!!!
 typedef enum {FAIL, SUCCESS} status;
 typedef enum {FALSE, TRUE} boolean;
 typedef enum {UNRESTRICTED, EXCLUSIVE, TRANSACTION} mode;
@@ -107,7 +106,7 @@ boolean checkPermissions(clientData* userProfile)
 	 clientData *curr, *prev;
 	 for (curr = fileTable->files[hash(userProfile->serverFD)]; curr!=NULL; curr = curr-> next)
 	 {
-		if (curr->serverFD == userProfile->serverFD)
+		if (strcmp(curr->pathName, userProfile->pathName)==0)
 		{
 			if(curr->privacyMode == TRANSACTION)
 			{
