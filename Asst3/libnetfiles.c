@@ -15,7 +15,7 @@ int socketToTheMan(char* hostname)
 {
 	hostName = hostname;
 	clientSocket = -1;
-	int portno = 91131;
+	int portno = 91135;
 	serverIPAddress = gethostbyname(hostName);
 	if (serverIPAddress == NULL)
 	{
@@ -84,7 +84,6 @@ int netopen (const char* pathname, int flags)
 	}	
 	//character array the size of the path name (include a +1 for the terminating null character), then three integers to indicate privacy mode and read/write and indicate how long the string is, and a character to indicate it's an open operation
 	int commandLength = strlen(pathname)+2+3*sizeof(int);
-	printf("COMMAND LENGTH: %d\n", commandLength);
 	char* command = (char*)malloc(sizeof (char)*(commandLength));
 	int clientSocket = socketToTheMan(hostName);
 	//indicate to server to open file with given flags and path name
@@ -92,16 +91,10 @@ int netopen (const char* pathname, int flags)
 	command[sizeof(int)] = 'O';
 	command[sizeof(int)+1] = flags;
 	command[2*sizeof(int)+1] = connectionMode;
-
-	printf("command 1: %d\n", (int)command[0]);
-	printf("command 2: %c\n", (char)command[sizeof(int)]);
-	printf("command 3: %d\n", (int)command[sizeof(int)+1]);
-	printf("command 4: %d\n", (int)command[2*sizeof(int)+1]);
 	
 	
 	//	command[3*sizeof(int)+1] = pathname;
 	strcpy(command+(3*sizeof(int)+1), pathname);
-	printf("pathname: %s\n", command+3*sizeof(int)+1);	
 	//strcpy(command "%c,%d,%d,%s", 'O', flags, connectionMode, pathname);
 	//	command[0] = 'O';
 //	command [1] = flags;
@@ -110,7 +103,6 @@ int netopen (const char* pathname, int flags)
 	{
 		printf("ERROR writing to socket");
 	}
-	printf("CONNECTED\n");
 	rwIndicator = read(clientSocket, buffer, 100);
 	if (rwIndicator <0)
 	{
@@ -118,21 +110,18 @@ int netopen (const char* pathname, int flags)
 		printf("ERROR: failed to read\n");
 		return -1;
 	}
-	printf("buffer client: %s\n", buffer);
 	sscanf(buffer, "%d", &successIndicator);
 	if (successIndicator < 0)
 	{
 		return -1;
 	}
 	sscanf(buffer, "%d,%d,%d,%d", &successIndicator, &fileDes, &errno, &h_errno);
-	printf("line 94\n");
 	if(successIndicator == FALSE)
 	{
 		close(clientSocket);
 		return -1;
 	}
 	close(clientSocket);
-	printf("file des: %d\n", fileDes);
 	return fileDes;
 	}
 
@@ -197,26 +186,27 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 		errno = EBADF;
 		return -1;
 	}
-	//allocate enough space for the total size of the command, amount of bytes you want to read, a file descriptor, indicator that you want to read, and a null terminator
-	char* command= (char*)malloc(2*sizeof(int)+3);// [(int)nbyte+1];
-	char* buffer = (char*)malloc(sizeof(char)*nbyte+1);
-	bzero(buffer, strlen(buffer));
-	int rwIndicatoror = -1;
+	//allocate enough space for the total size of the command, amount of bytes you want to read, a file descriptor, indicator that you want to read
+	int commandLength = 1+3*sizeof(int);
+	char* command= (char*)malloc(sizeof(char)*commandLength);// [(int)nbyte+1];
+	char* buffer = (char*)malloc(sizeof(char)*(nbyte+1+sizeof(int)));
+	bzero(buffer, nbyte+1+sizeof(int));
+	int rwIndicator = -1;
 	int numByte = -1;
 	int clientSocket = socketToTheMan(hostName);
 	
-	command[0] = 3*sizeof(int)+3;
+	command[0] = commandLength;
 	command[sizeof(int)] = 'R';
 	command[sizeof(int)+1] = fildes;
 	command [2*sizeof(int)+1] = nbyte;
-	
+	printf("COMMAND LENGTH: %d\n", (int)command[0]);	
 	char readString [nbyte];
 	//strcpy (command, (char*)buf);
 
 	//int numByte=0;
 	//sprintf(command, "%d%c%d", (int)nbyte, fildes, 'R');
 	//char* readString;
-	int rwIndicator = write (clientSocket, command, strlen(command));
+	rwIndicator = write (clientSocket, command, commandLength);
 	if (rwIndicator < 0)
 	{
 		printf("ERROR writing to socket\n");

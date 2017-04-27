@@ -35,12 +35,18 @@ dataTable* fileTable;
 pthread_mutex_t fileTableMutex;
 clientData* makeClient(int clientSockFD, int commandLength)
 {
-	//printf("command: %s\n", command);
-	char* buffer = (char*)malloc(sizeof(char)*commandLength); 
-	bzero(buffer, commandLength);;
-	read (clientSockFD, buffer, strlen(buffer));
+	char* buffer = (char*)malloc(sizeof(char)*(commandLength - 4)); 
+	bzero(buffer, commandLength-4);
+	printf("here\n");
+	int rwIndicator = read (clientSockFD, buffer, commandLength-4);
+	if (rwIndicator < 0)
+	{
+		printf("ERROR failed to read\n");
+		close(clientSockFD);
+		return NULL;
+	}
 	//FINISH READING IN THE DATA FOR ALL FUNCTIONS SO YOU HAVE EXACT NUMBERS FOR BUFFER READ SIZES
-	char opMode = buffer[sizeof(int)];
+	char opMode = (char)buffer[sizeof(int)-4];
 	char *path;
 	
 	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
@@ -51,20 +57,19 @@ clientData* makeClient(int clientSockFD, int commandLength)
 		case 'O':
 			//sscanf(command+1, "%d", fileMode);
 			path = (char*)malloc(sizeof(char)*commandLength+1);
-			strcpy(path, buffer+(3*sizeof(int)+1));
+			strcpy(path, buffer+(3*sizeof(int)+1-4));
 			//printf("file mode: %d, path: %s\n", fileMode, path);
-			userProfile -> fileMode = buffer[sizeof(int)+1];
+			userProfile -> fileMode = (int)buffer[sizeof(int)+1-4];
 			userProfile -> pathName = path;	
-			userProfile -> privacyMode = buffer[2*sizeof(int)+1];
+			userProfile -> privacyMode = (int)buffer[2*sizeof(int)+1-4];
 			break;
+	
 		case 'R':
 			//sscanf(command+1, "%d;%d", &fileDe`s, &nbyte);
-			userProfile -> clientFD = buffer[sizeof(int)+1];;
+			userProfile -> clientFD = (int)buffer[sizeof(int)+1-4];
 			userProfile -> serverFD = -1*userProfile -> clientFD;
-			userProfile -> numBytes = buffer[2*sizeof(int)+1];
-			//printf("fildes: %d nbyte: %d\n", fileDes, nbyte);
-			//printf("FILE DES: %d\n", userProfile-> numBytes);
-			//printf("NUM BYTES: %d\n", userProfile->numBytes);
+			userProfile -> numBytes = (int)buffer[2*sizeof(int)+1-4];
+			printf("fildes: %d nbyte: %d\n", userProfile -> serverFD, userProfile->numBytes);
 			break;
 		case 'C':
 			userProfile -> clientFD = buffer[sizeof(int)+1];
@@ -159,6 +164,7 @@ char* myOpen(clientData* userProfile)
 	{
 		printf("failed to open file\n");
 		sprintf(buffer, "%d,%d,%d,%d", FAIL, 0, errno, h_errno);
+		return buffer;
 	}
 	
 	//check file table to make sure the operation is permitted with in case or preexisting files with 
@@ -191,16 +197,15 @@ char* myOpen(clientData* userProfile)
 }
 char* myRead(clientData* userProfile)
 {
-	char* stringNum = (char*)malloc(sizeof(char)*userProfile->numBytes+1);
-	sprintf(stringNum, "%d", userProfile ->numBytes);
-	int bufferLength = userProfile->numBytes +strlen(stringNum) +1;
+	//char* stringNum = (char*)malloc(sizeof(char)*userProfile->numBytes+1);
+	//sprintf(stringNum, "%d", userProfile ->numBytes);
+	//int bufferLength = userProfile->numBytes +strlen(stringNum) +1;
 	char buffer[userProfile->numBytes];
 	bzero(buffer, userProfile->numBytes);
-	char* metaBuffer = (char*)malloc(sizeof(char)* bufferLength);
-	bzero(metaBuffer, bufferLength);
 	if(isOpen(userProfile) == FALSE)
 	{
 		printf("ERROR file descriptor does not exist\n");
+		char* metaBuffer = (char*)malloc(sizeof(char)*(sizeof(int)*4+3));
 		sprintf(metaBuffer,"%d,%d,%d,%d", FAIL, -1, EBADF, h_errno);
 		return metaBuffer;
 	}
@@ -208,20 +213,23 @@ char* myRead(clientData* userProfile)
 	if (!checkPermissions)
 	{
 		printf("ERROR pemission denied\n");
+		char* metaBuffer = (char*)malloc(sizeof(char)*(sizeof(int)*4+3));
 		sprintf(metaBuffer, "%d,%d,%d,%d", FAIL, -1, EACCES, h_errno);
 		return metaBuffer;
 	}
 	
 	
-	pthread_mutex_lock(&fileTableMutex);
+	//pthread_mutex_lock(&fileTableMutex);
 	int numRead = read(userProfile -> serverFD, buffer, userProfile -> numBytes);
-	pthread_mutex_lock(&fileTableMutex);
+	//pthread_mutex_lock(&fileTableMutex);
 	if (numRead <0)
 	{
+		char* metaBuffer = (char*)malloc(sizeof(char)*(sizeof(int)*4+3));
 		printf("ERROR reading from file");
 		sprintf(metaBuffer, "%d,%d,%d,%d", FAIL, -1, errno, h_errno);
 		return metaBuffer;
 	}
+	char* metaBuffer = (char*)malloc(sizeof(char)*(sizeof(int)*2+2+userProfile->numBytes));
 	sprintf(metaBuffer, "%d,%d,%s", SUCCESS, numRead, buffer);
 	//printf("%d %s\n", numRead, buffer); 
 	return metaBuffer;	
@@ -289,9 +297,24 @@ void* clientHandler(void* clientSocket)
 {
 	char* buffer;
 	int clientSockFD = *(int*)clientSocket;
+	clientData* userProfile = NULL;
 	char* commandLength = (char*)malloc(sizeof(char)*4);
+	bzero(commandLength, 4);
 	read(clientSockFD, commandLength, 4);
-	clientData* userProfile = makeClient(clientSockFD, atoi(commandLength));
+	//read(clientSockFD, commandLength, 1);
+	printf("command: %d\n", (int)commandLength[0]);
+	if (read > 0)
+	{
+		userProfile = makeClient(clientSockFD, (int)commandLength[0]);
+	}
+	if (userProfile == NULL)
+	{
+		buffer = (char*)malloc(sizeof(char)*sizeof(int));
+		buffer [0] = -1;
+		write(clientSockFD, buffer, sizeof(int));
+		pthread_exit(NULL);
+	}
+	
 	switch (userProfile -> opMode)
 	{
 		case 'O':
@@ -315,7 +338,7 @@ int main (int argc, char** argv)
 	boolean active = TRUE;
 	int sockfd = -1;
 	int clientSocket = -1;
-	int portno = 91128;
+	int portno = 91135;
 	int clilen = -1;
 	int amtData = -1;
 	char buffer [5000];
@@ -335,7 +358,7 @@ int main (int argc, char** argv)
 	serverAddressInfo.sin_addr.s_addr = INADDR_ANY;
 	if (bind(sockfd, (struct sockaddr *) &serverAddressInfo, sizeof(serverAddressInfo))<0)
 	{
-		printf ("ERROR ON BINDING; errno: %d, h_errno: ", errno, h_errno);
+		printf ("ERROR ON BINDING; errno: %d, h_errno: %d\n", errno, h_errno);
 		return 1;
 	}
 		if (listen (sockfd, 50)<0)
