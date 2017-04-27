@@ -37,7 +37,6 @@ clientData* makeClient(int clientSockFD, int commandLength)
 {
 	char* buffer = (char*)malloc(sizeof(char)*(commandLength - 4)); 
 	bzero(buffer, commandLength-4);
-	printf("here\n");
 	int rwIndicator = read (clientSockFD, buffer, commandLength-4);
 	if (rwIndicator < 0)
 	{
@@ -69,11 +68,11 @@ clientData* makeClient(int clientSockFD, int commandLength)
 			userProfile -> clientFD = (int)buffer[sizeof(int)+1-4];
 			userProfile -> serverFD = -1*userProfile -> clientFD;
 			userProfile -> numBytes = (int)buffer[2*sizeof(int)+1-4];
-			printf("fildes: %d nbyte: %d\n", userProfile -> serverFD, userProfile->numBytes);
+			//printf("fildes: %d nbyte: %d\n", userProfile -> serverFD, userProfile->numBytes);
 			break;
 		case 'C':
-			userProfile -> clientFD = buffer[sizeof(int)+1];
-			userProfile -> serverFD  = -1*userProfile ->serverFD;
+			userProfile -> clientFD = buffer[sizeof(int)+1-4];
+			userProfile -> serverFD  = -1*userProfile ->clientFD;
 			//userProfile->serverFD = sscanf(command+1, "%d", &fileDes);
 			break;
 		case 'W':
@@ -152,6 +151,7 @@ boolean isOpen(clientData* userProfile)
 			return TRUE;
 		curr = curr->next;
 	}
+	printf("is not open\n");
 	return FALSE;
 }
 char* myOpen(clientData* userProfile)
@@ -182,6 +182,7 @@ char* myOpen(clientData* userProfile)
 	else
 	{
 		int hashIndex = (serverFD)%100;
+	//	printf("HASH INDEX: %d\n", hashIndex);
 		//printf("myOpen file descriptor: %d, hashIndex %d\n");
 		userProfile -> next = fileTable->files[hashIndex];
 		fileTable->files[hashIndex] = userProfile;
@@ -209,7 +210,10 @@ char* myRead(clientData* userProfile)
 		sprintf(metaBuffer,"%d,%d,%d,%d", FAIL, -1, EBADF, h_errno);
 		return metaBuffer;
 	}
-
+	else
+	{
+		printf("is open\n");
+	}
 	if (!checkPermissions)
 	{
 		printf("ERROR pemission denied\n");
@@ -263,7 +267,7 @@ char* myWrite (clientData* userProfile)
 }
 char* myClose(clientData* userProfile)
 {
-	int serverFD = userProfile ->serverFD;;
+	int serverFD = userProfile ->serverFD;
 	int filedes = -1;
 	clientData *prev, *curr;
 	int closeResult;
@@ -271,26 +275,36 @@ char* myClose(clientData* userProfile)
 	bzero(buffer, 100);
 	int hashIndex = hash(serverFD);
 	curr = fileTable->files [hashIndex];
-	
+	prev = curr;
 	while (curr!= NULL && curr->serverFD!=serverFD)
 	{
 		prev = curr;
 		curr = curr->next;
+		printf("CURRENT VALUE: %d\n", prev->serverFD);
 	}
 	//if file is not opened
 	if (curr == NULL)
 	{
-		sprintf(buffer, "%d,%d", FAIL, EBADF, h_errno);
+		sprintf(buffer, "%d%d%d", FAIL, EBADF, h_errno);
 		return buffer;
 	}
-	prev->next = curr->next;	
+	if (prev == curr)
+	{
+		fileTable->files[hashIndex] = NULL;
+	}
+	else
+	{
+		prev->next = curr->next;	
+	}
+	//	printf("PREV NEXT IS %d\n", prev->next->serverFD);
+
 	closeResult = close(serverFD);
 	if (closeResult < 0)
 	{
-		sprintf(buffer, "%d%d", FAIL, errno, h_errno);
+		sprintf(buffer, "%d%d%d", FAIL, errno, h_errno);
 		return buffer;
 	}
-	sprintf(buffer, "%d%d", SUCCESS, errno, h_errno);
+	sprintf(buffer, "%d%d%d", SUCCESS, errno, h_errno);
 	return buffer;
 }
 void* clientHandler(void* clientSocket)

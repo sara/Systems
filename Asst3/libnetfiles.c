@@ -141,13 +141,13 @@ int netclose(int fildes)
 		h_errno = HOST_NOT_FOUND;
 		return -1;
 	}
-	
-	char* command = (char*)malloc(2*sizeof(int)+1);		
-	command[0] = sizeof(command)+1;
+	int commandLength = 2*sizeof(int)+1;
+	char* command = (char*)malloc(commandLength);		
+	command[0] = commandLength;
 	command[sizeof(int)] = 'C';
 	command [sizeof(int)+1] = fildes;
 	//sprintf(buffer, "%c,%d", 'C', fildes);
-	rwIndicator = write(clientSocket, command, 2*sizeof(int)+1);
+	rwIndicator = write(clientSocket, command, commandLength);
 	if (rwIndicator <0)
 	{
 		printf("ERROR failed to write\n");
@@ -166,7 +166,7 @@ int netclose(int fildes)
 		return -1;
 	}
 	close(clientSocket);
-	sscanf(buffer, "%d,%d,%d", &rwIndicator, &errno, &h_errno);
+	sscanf(buffer, "%d%d%d", &rwIndicator, &errno, &h_errno);
 	if (rwIndicator<0)
 	{
 		return -1;
