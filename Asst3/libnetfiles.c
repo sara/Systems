@@ -15,7 +15,7 @@ int socketToTheMan(char* hostname)
 {
 	hostName = hostname;
 	clientSocket = -1;
-	int portno = 91128;
+	int portno = 91131;
 	serverIPAddress = gethostbyname(hostName);
 	if (serverIPAddress == NULL)
 	{
@@ -83,24 +83,34 @@ int netopen (const char* pathname, int flags)
 		h_errno = HOST_NOT_FOUND;
 	}	
 	//character array the size of the path name (include a +1 for the terminating null character), then three integers to indicate privacy mode and read/write and indicate how long the string is, and a character to indicate it's an open operation
-	char* command = (char*)malloc(sizeof (char)* (strlen(pathname)+1+1+3*sizeof(int)));
+	int commandLength = strlen(pathname)+2+3*sizeof(int);
+	printf("COMMAND LENGTH: %d\n", commandLength);
+	char* command = (char*)malloc(sizeof (char)*(commandLength));
 	int clientSocket = socketToTheMan(hostName);
 	//indicate to server to open file with given flags and path name
-	command[0] = (int)sizeof(command)+1;
+	command[0] = commandLength;
 	command[sizeof(int)] = 'O';
 	command[sizeof(int)+1] = flags;
 	command[2*sizeof(int)+1] = connectionMode;
-//	command[3*sizeof(int)+1] = pathname;
-	strcpy(command+(3*sizeof(int)+1), pathname);
+
+	printf("command 1: %d\n", (int)command[0]);
+	printf("command 2: %c\n", (char)command[sizeof(int)]);
+	printf("command 3: %d\n", (int)command[sizeof(int)+1]);
+	printf("command 4: %d\n", (int)command[2*sizeof(int)+1]);
 	
+	
+	//	command[3*sizeof(int)+1] = pathname;
+	strcpy(command+(3*sizeof(int)+1), pathname);
+	printf("pathname: %s\n", command+3*sizeof(int)+1);	
 	//strcpy(command "%c,%d,%d,%s", 'O', flags, connectionMode, pathname);
 	//	command[0] = 'O';
 //	command [1] = flags;
-	rwIndicator = write(clientSocket, command, strlen(command));
+	rwIndicator = write(clientSocket, command, commandLength);
 	if (rwIndicator < 0)
 	{
 		printf("ERROR writing to socket");
 	}
+	printf("CONNECTED\n");
 	rwIndicator = read(clientSocket, buffer, 100);
 	if (rwIndicator <0)
 	{
@@ -108,7 +118,12 @@ int netopen (const char* pathname, int flags)
 		printf("ERROR: failed to read\n");
 		return -1;
 	}
-	printf("buffer client: %s\n");
+	printf("buffer client: %s\n", buffer);
+	sscanf(buffer, "%d", &successIndicator);
+	if (successIndicator < 0)
+	{
+		return -1;
+	}
 	sscanf(buffer, "%d,%d,%d,%d", &successIndicator, &fileDes, &errno, &h_errno);
 	printf("line 94\n");
 	if(successIndicator == FALSE)
@@ -117,6 +132,7 @@ int netopen (const char* pathname, int flags)
 		return -1;
 	}
 	close(clientSocket);
+	printf("file des: %d\n", fileDes);
 	return fileDes;
 	}
 
@@ -162,6 +178,10 @@ int netclose(int fildes)
 	}
 	close(clientSocket);
 	sscanf(buffer, "%d,%d,%d", &rwIndicator, &errno, &h_errno);
+	if (rwIndicator<0)
+	{
+		return -1;
+	}
 	return 0;
 }
 
