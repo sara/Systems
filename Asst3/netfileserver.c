@@ -37,7 +37,10 @@ clientData* makeClient(int clientSockFD, int commandLength)
 {
 	char* buffer = (char*)malloc(sizeof(char)*(commandLength - 4)); 
 	bzero(buffer, commandLength-4);
+//	printf("MAKE CLIENT COMMAND LENGTH: %d\n", commandLength);	
+	printf("in make client\n");
 	int rwIndicator = read (clientSockFD, buffer, commandLength-4);
+	printf("make client\n");
 	if (rwIndicator < 0)
 	{
 		printf("ERROR failed to read\n");
@@ -51,6 +54,7 @@ clientData* makeClient(int clientSockFD, int commandLength)
 	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
 	userProfile->opMode = opMode;
 	userProfile -> next = NULL;
+	printf("USER OP MODE: %c\n", userProfile -> opMode);
 	switch (userProfile -> opMode)
 	{
 		case 'O':
@@ -61,6 +65,10 @@ clientData* makeClient(int clientSockFD, int commandLength)
 			userProfile -> fileMode = (int)buffer[sizeof(int)+1-4];
 			userProfile -> pathName = path;	
 			userProfile -> privacyMode = (int)buffer[2*sizeof(int)+1-4];
+			
+			printf("FILE MODE: %d\n", userProfile -> fileMode);
+			
+			
 			break;
 	
 		case 'R':
@@ -77,19 +85,19 @@ clientData* makeClient(int clientSockFD, int commandLength)
 			break;
 		case 'W':
 
-
+			printf("HERE NOW\n");
 			//writeString = (char*)malloc(sizeof(char)*strlen(command));
 			//sscanf(command+2, "%d,%d", &fileDes, &nbyte);
 			//garbageString = (char*)malloc(sizeof(char) * (nbyte+(fileDes*-1)+4));
 			//sprintf(garbageString, "%c,%d,%d", 'W', fileDes, nbyte);
 			//strncpy(writeString, command+strlen(garbageString), strlen(writeString)-strlen(garbageString));
 			//free(garbageString);
-			userProfile -> clientFD = buffer[sizeof(int)+1];
+			userProfile -> clientFD = (int)buffer[sizeof(int)+1-4];
 			userProfile -> serverFD = -1*userProfile->clientFD;
-			userProfile -> numBytes = buffer[2*sizeof(int)+1];
-			char* writeString = (char*)malloc(sizeof(char)*userProfile->numBytes+1);	
-			strcpy(writeString, buffer+3*sizeof(int)+1);
+			userProfile -> numBytes = (int)buffer[2*sizeof(int)+1-4];
+			char* writeString = (char*)malloc(sizeof(char)*userProfile->numBytes+1);			   strcpy(writeString, buffer+3*sizeof(int)+1-4);
 			userProfile -> writeString = writeString;
+			printf("clientFD:%d\nnumBytes:%d\nwriteString:%s\n", userProfile->clientFD, userProfile-> numBytes, userProfile -> writeString);
 	}
 	return userProfile;
 }
@@ -114,11 +122,11 @@ int hash (int fileDes)
 }
 boolean checkPermissions(clientData* userProfile)
 {
-	 clientData *curr, *prev;
+	 clientData *curr;
 	 for (curr = fileTable->files[hash(userProfile->serverFD)]; curr!=NULL; curr = curr-> next)
 	 {
 		if (strcmp(curr->pathName, userProfile->pathName)==0)
-		{
+		{printf("122\n");
 			if(curr->privacyMode == TRANSACTION)
 			{
 				printf("ERROR file already open in transaction mode\n");
@@ -126,12 +134,12 @@ boolean checkPermissions(clientData* userProfile)
 			}
 			if (curr->privacyMode == EXCLUSIVE)
 			{
-				if (userProfile -> opMode == 'R' || curr->opMode == 'R')
+				if (userProfile -> fileMode == O_RDONLY || curr->fileMode == O_RDONLY)
 				{
 					return TRUE;
 				}
+				printf("ERROR file already open for writing in exclusive mode\n");
 			}
-			printf("ERROR file already open for writing in exclusive mode\n");
 			return FALSE;
 		}
 	 }
@@ -143,7 +151,7 @@ boolean isOpen(clientData* userProfile)
 	//printf("isOpen fileDes: %d isOpen hash index: %d\n", userProfile->serverFD, hashIndex);
 	//printf("READ STATUS: %d\n", fileTable->files[hashIndex]->serverFD);
 	
-	clientData* curr = fileTable->files[hash(userProfile->serverFD)];
+	clientData* curr = fileTable->files[hashIndex];
 	while (curr!= NULL)
 	{
 		//printf("TABLE STATE: %d\n", fileTable ->files[hash(userProfile->serverFD)]->serverFD);
@@ -156,6 +164,7 @@ boolean isOpen(clientData* userProfile)
 }
 char* myOpen(clientData* userProfile)
 {
+	printf("PATH NAME: %s\n", userProfile -> pathName);
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
 //	printf("%s\n", userProfile->pathName);
@@ -170,7 +179,7 @@ char* myOpen(clientData* userProfile)
 	//check file table to make sure the operation is permitted with in case or preexisting files with 
 	//prohibive privacy permissions
 	
-	if (!checkPermissions)
+	if (checkPermissions(userProfile) == FALSE)
 	{
 		printf("PERMISSION DENIED\n");
 		errno = EACCES;
@@ -214,15 +223,15 @@ char* myRead(clientData* userProfile)
 	{
 		printf("is open\n");
 	}
-	if (!checkPermissions)
+/*	if (checkPermissions(userProfile) == FALSE)
 	{
 		printf("ERROR pemission denied\n");
 		char* metaBuffer = (char*)malloc(sizeof(char)*(sizeof(int)*4+3));
 		sprintf(metaBuffer, "%d,%d,%d,%d", FAIL, -1, EACCES, h_errno);
 		return metaBuffer;
 	}
-	
-	
+	printf("checked permissions\n");
+*/		
 	//pthread_mutex_lock(&fileTableMutex);
 	int numRead = read(userProfile -> serverFD, buffer, userProfile -> numBytes);
 	//pthread_mutex_lock(&fileTableMutex);
@@ -254,7 +263,7 @@ char* myWrite (clientData* userProfile)
 	pthread_mutex_unlock(&fileTableMutex);
 	if (numWritten < 0)
 	{
-		printf("error writing  %s file descriptor = %d\n", strerror(errno), (ssize_t)userProfile ->serverFD);
+		printf("error writing  %s file descriptor = %d\n", strerror(errno), (int)userProfile ->serverFD);
 		sprintf(buffer, "%d,%d,%d", FAIL, errno, h_errno); 
 	}
 	else
@@ -268,7 +277,7 @@ char* myWrite (clientData* userProfile)
 char* myClose(clientData* userProfile)
 {
 	int serverFD = userProfile ->serverFD;
-	int filedes = -1;
+	//int filedes = -1;
 	clientData *prev, *curr;
 	int closeResult;
 	char* buffer = (char*)malloc(sizeof(char)*100);;
@@ -316,15 +325,21 @@ void* clientHandler(void* clientSocket)
 	bzero(commandLength, 4);
 	read(clientSockFD, commandLength, 4);
 	//read(clientSockFD, commandLength, 1);
-	printf("command: %d\n", (int)commandLength[0]);
+	//printf("command: %d\n", (int)commandLength[0]);
 	if (read > 0)
 	{
 		userProfile = makeClient(clientSockFD, (int)commandLength[0]);
 	}
+	else 
+	{
+		printf("ERROR READING\n");
+	}
 	if (userProfile == NULL)
 	{
-		buffer = (char*)malloc(sizeof(char)*sizeof(int));
+		buffer = (char*)malloc(sizeof(char)*(3*sizeof(int)));
 		buffer [0] = -1;
+		buffer[sizeof(int)] = errno;
+		buffer[sizeof(int)] = h_errno;
 		write(clientSockFD, buffer, sizeof(int));
 		pthread_exit(NULL);
 	}
@@ -352,12 +367,9 @@ int main (int argc, char** argv)
 	boolean active = TRUE;
 	int sockfd = -1;
 	int clientSocket = -1;
-	int portno = 91135;
+	int portno = 9214;
 	int clilen = -1;
-	int amtData = -1;
-	char buffer [5000];
-	struct sockaddr_in serverAddressInfo;
-	struct sockaddr_in clientAddressInfo;
+	struct sockaddr_in serverAddressInfo, clientAddressInfo;
 	pthread_mutex_init(&fileTableMutex, NULL);
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -412,6 +424,7 @@ int main (int argc, char** argv)
 		pthread_join(clientThread, NULL); 
 	
 	}
+	return 0;
 }
 
 
