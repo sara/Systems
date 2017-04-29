@@ -200,7 +200,7 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	command[sizeof(int)] = 'R';
 	*(int *)(command + sizeof(int)+1) = fildes;
 	*(int *)(command + 2*sizeof(int)+1) = nbyte;
-	printf("COMMAND LENGTH: %d\n", (int)command[0]);	
+//	printf("COMMAND LENGTH: %d\n", (int)command[0]);	
 	char readString [nbyte];
 	//strcpy (command, (char*)buf);
 
@@ -237,7 +237,7 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	}
 	sscanf(buffer, "%d,%d,%s", &rwIndicator, &numByte, readString);
 	close(clientSocket);
-	printf("libnet numRead: %d\n", numByte);
+	//printf("libnet numRead: %d\n", numByte);
 	return numByte;
 	}
 
@@ -269,36 +269,7 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 	*(int *)(command+2*sizeof(int)+1) = nbyte;
 	strcpy (command+num, (char*)buf);
 	int numByte=0;
-	printf("command length: %d\ncommand: %c\nfiledes: %d\nnumBytes:%d\nstring: %s\n", (int)command[0], command[sizeof(int)], (int)command[sizeof(int)+1], (int)command[2*sizeof(int)+1], (char*)command+num);
-
-
-	
-	//allocate enough space for the total size of the command, amount of bytes you want to read, a file descriptor, indicator that you want to read
-	/*int commandLength = 1+3*sizeof(int);
-	char* command= (char*)malloc(sizeof(char)*commandLength);// [(int)nbyte+1];
-	char* buffer = (char*)malloc(sizeof(char)*(nbyte+1+sizeof(int)));
-	bzero(buffer, nbyte+1+sizeof(int));
-	int rwIndicator = -1;
-	int numByte = -1;
-	int clientSocket = socketToTheMan(hostName);
-	
-	command[0] = commandLength;
-	command[sizeof(int)] = 'R';
-	command[sizeof(int)+1] = fildes;
-	command [2*sizeof(int)+1] = nbyte;
-	*/
-
-
-
-
-
-
-
-
-
-
-
-
+	//printf("command length: %d\ncommand: %c\nfiledes: %d\nnumBytes:%d\nstring: %s\n", (int)command[0], command[sizeof(int)], (int)command[sizeof(int)+1], (int)command[2*sizeof(int)+1], (char*)command+num);
 
 
 	//sprintf(command, "%c,%d,%d,%s", 'W', fildes, (int)nbyte, (char*)buf);
@@ -326,7 +297,7 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 	}
 	if (((char*)buffer)[0] == FALSE)
 	{
-		sscanf(buffer, "%d,%d,%d", &rwIndicator,  &errno, &h_errno);	
+		sscanf(buffer, "%d,%d,%d,%d", &rwIndicator, &numByte,  &errno, &h_errno);	
 		sprintf("WRITE FAILED %s %s\n", strerror(errno), strerror(h_errno));
 		close(clientSocket);
 		return -1;

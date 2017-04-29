@@ -54,7 +54,7 @@ clientData* makeClient(int clientSockFD, int commandLength)
 	clientData* userProfile = (clientData*)malloc(sizeof(clientData));
 	userProfile->opMode = opMode;
 	userProfile -> next = NULL;
-	printf("USER OP MODE: %c\n", userProfile -> opMode);
+	//printf("USER OP MODE: %c\n", userProfile -> opMode);
 	switch (userProfile -> opMode)
 	{
 		case 'O':
@@ -66,7 +66,7 @@ clientData* makeClient(int clientSockFD, int commandLength)
 			userProfile -> pathName = path;	
 			userProfile -> privacyMode = (int)buffer[2*sizeof(int)+1-4];
 			
-			printf("FILE MODE: %d\n", userProfile -> fileMode);
+			//printf("FILE MODE: %d\n", userProfile -> fileMode);
 			
 			
 			break;
@@ -97,7 +97,7 @@ clientData* makeClient(int clientSockFD, int commandLength)
 			userProfile -> numBytes = (int)buffer[2*sizeof(int)+1-4];
 			char* writeString = (char*)malloc(sizeof(char)*userProfile->numBytes+1);			   strcpy(writeString, buffer+3*sizeof(int)+1-4);
 			userProfile -> writeString = writeString;
-			printf("clientFD:%d\nnumBytes:%d\nwriteString:%s\n", userProfile->clientFD, userProfile-> numBytes, userProfile -> writeString);
+			//printf("clientFD:%d\nnumBytes:%d\nwriteString:%s\n", userProfile->clientFD, userProfile-> numBytes, userProfile -> writeString);
 	}
 	return userProfile;
 }
@@ -258,9 +258,24 @@ char* myWrite (clientData* userProfile)
 		sprintf(buffer, "%d,%d,%d", FAIL, EACCES, h_errno);
 		return buffer;
 	}*/
-	pthread_mutex_lock(&fileTableMutex);
-	int numWritten = write(userProfile ->serverFD, userProfile->writeString, userProfile -> numBytes);
-	pthread_mutex_unlock(&fileTableMutex);
+
+	if(isOpen(userProfile) == FALSE)
+	{
+		printf("ERROR file descriptor does not exist\n");
+		char* metaBuffer = (char*)malloc(sizeof(char)*(sizeof(int)*4+3));
+		sprintf(metaBuffer,"%d,%d,%d,%d", FAIL, -1, EBADF, h_errno);
+		return metaBuffer;
+	}
+	else
+	{
+		printf("file is OPEN\n");
+	}
+
+
+
+	//pthread_mutex_lock(&fileTableMutex);
+	int numWritten = write(userProfile ->serverFD, userProfile->writeString, userProfile -> numBytes);	
+	//pthread_mutex_unlock(&fileTableMutex);
 	if (numWritten < 0)
 	{
 		printf("error writing  %s file descriptor = %d\n", strerror(errno), (int)userProfile ->serverFD);
