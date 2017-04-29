@@ -63,7 +63,7 @@ int netserverinit(char* hostname, mode privacyMode)
 	{
 		hostValid = 0;
 		connectionMode = privacyMode;
-		hostName = (char*)malloc(sizeof(char)*strlen(hostname));
+		hostName = (char*)malloc(sizeof(char)*strlen(hostname)+1);
 		strcpy(hostName, hostname);
 	}
 	return hostValid; 
@@ -87,10 +87,10 @@ int netopen (const char* pathname, int flags)
 	char* command = (char*)malloc(sizeof (char)*(commandLength));
 	int clientSocket = socketToTheMan(hostName);
 	//indicate to server to open file with given flags and path name
-	command[0] = commandLength;
+	*(int*)command = commandLength;
 	command[sizeof(int)] = 'O';
-	command[sizeof(int)+1] = flags;
-	command[2*sizeof(int)+1] = connectionMode;
+	*(int*)(command +sizeof(int)+1) = flags;
+	*(int*)(command +2*sizeof(int)+1) = connectionMode;
 	
 	
 	//	command[3*sizeof(int)+1] = pathname;
@@ -144,9 +144,9 @@ int netclose(int fildes)
 	}
 	int commandLength = 2*sizeof(int)+1;
 	char* command = (char*)malloc(commandLength);		
-	command[0] = commandLength;
+	*(int *)command = commandLength;
 	command[sizeof(int)] = 'C';
-	command [sizeof(int)+1] = fildes;
+	*(int *)(command+sizeof(int)+1) = fildes;
 	//sprintf(buffer, "%c,%d", 'C', fildes);
 	rwIndicator = write(clientSocket, command, commandLength);
 	if (rwIndicator <0)
@@ -196,10 +196,10 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	int numByte = -1;
 	int clientSocket = socketToTheMan(hostName);
 	
-	command[0] = commandLength;
+	*(int *)command = commandLength;
 	command[sizeof(int)] = 'R';
-	command[sizeof(int)+1] = fildes;
-	command [2*sizeof(int)+1] = nbyte;
+	*(int *)(command + sizeof(int)+1) = fildes;
+	*(int *)(command + 2*sizeof(int)+1) = nbyte;
 	printf("COMMAND LENGTH: %d\n", (int)command[0]);	
 	char readString [nbyte];
 	//strcpy (command, (char*)buf);
@@ -263,10 +263,10 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 	int rwIndicator = -1;
 	int clientSocket = socketToTheMan(hostName);	
 	int num = 3*sizeof(int)+1;
-	command[0] = commandLength;
+	*(int *)command = commandLength;
 	command[sizeof(int)] = 'W';
-	command [sizeof(int)+1] = fildes;
-	command[2*sizeof(int)+1] = nbyte;
+	*(int *)(command+sizeof(int)+1) = fildes;
+	*(int *)(command+2*sizeof(int)+1) = nbyte;
 	strcpy (command+num, (char*)buf);
 	int numByte=0;
 	printf("command length: %d\ncommand: %c\nfiledes: %d\nnumBytes:%d\nstring: %s\n", (int)command[0], command[sizeof(int)], (int)command[sizeof(int)+1], (int)command[2*sizeof(int)+1], (char*)command+num);

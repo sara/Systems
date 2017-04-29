@@ -38,9 +38,9 @@ clientData* makeClient(int clientSockFD, int commandLength)
 	char* buffer = (char*)malloc(sizeof(char)*(commandLength - 4)); 
 	bzero(buffer, commandLength-4);
 //	printf("MAKE CLIENT COMMAND LENGTH: %d\n", commandLength);	
-	printf("in make client\n");
+	//printf("in make client\n");
 	int rwIndicator = read (clientSockFD, buffer, commandLength-4);
-	printf("make client\n");
+	//printf("make client\n");
 	if (rwIndicator < 0)
 	{
 		printf("ERROR failed to read\n");
@@ -219,11 +219,11 @@ char* myRead(clientData* userProfile)
 		sprintf(metaBuffer,"%d,%d,%d,%d", FAIL, -1, EBADF, h_errno);
 		return metaBuffer;
 	}
-	else
+/*	else
 	{
 		printf("is open\n");
 	}
-/*	if (checkPermissions(userProfile) == FALSE)
+	if (checkPermissions(userProfile) == FALSE)
 	{
 		printf("ERROR pemission denied\n");
 		char* metaBuffer = (char*)malloc(sizeof(char)*(sizeof(int)*4+3));
@@ -253,11 +253,11 @@ char* myWrite (clientData* userProfile)
 	//printf("string: %s\n", userProfile -> writeString);
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
-	if (!checkPermissions(userProfile))
+	/*if (!checkPermissions(userProfile))
 	{
 		sprintf(buffer, "%d,%d,%d", FAIL, EACCES, h_errno);
 		return buffer;
-	}
+	}*/
 	pthread_mutex_lock(&fileTableMutex);
 	int numWritten = write(userProfile ->serverFD, userProfile->writeString, userProfile -> numBytes);
 	pthread_mutex_unlock(&fileTableMutex);
@@ -328,7 +328,7 @@ void* clientHandler(void* clientSocket)
 	//printf("command: %d\n", (int)commandLength[0]);
 	if (read > 0)
 	{
-		userProfile = makeClient(clientSockFD, (int)commandLength[0]);
+		userProfile = makeClient(clientSockFD, *(int *)commandLength);
 	}
 	else 
 	{
