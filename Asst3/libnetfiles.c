@@ -280,6 +280,7 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
 	int rwIndicator = -1;
+	int successIndicator = -1;
 	int clientSocket = socketToTheMan(hostName);	
 	int num = 3*sizeof(int)+1;
 	*(int *)command = commandLength;
@@ -301,26 +302,30 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 		return -1;
 	}
 	rwIndicator = read(clientSocket, buffer, sizeof(buffer));
+	printf("304\n");
 	if(rwIndicator < 0)
 	{
 		close(clientSocket);
 		printf("ERROR: failed to read %s\n", strerror(errno));
 		return -1;
 	}
-
-	if ((int)buffer[0] < 0)
+	printf("311\n");
+	/*if ((int)buffer[0] < 0)
 	{
 		sscanf(buffer, "%d%d%d", &rwIndicator, &errno, &h_errno);
 		close (clientSocket);
 		return -1;
-	}
-	if (((char*)buffer)[0] == FALSE)
+	}*/
+	
+	sscanf(buffer, "%d,%d,%d,%d", &successIndicator, &numByte,  &errno, &h_errno);	
+	
+	if(successIndicator == FALSE)
 	{
-		sscanf(buffer, "%d,%d,%d,%d", &rwIndicator, &numByte,  &errno, &h_errno);	
-		sprintf("WRITE FAILED %s %s\n", strerror(errno), strerror(h_errno));
+		printf("WRITE FAILED errno: %s h_errno: %s\n", strerror(errno), strerror(h_errno));
 		close(clientSocket);
 		return -1;
 	}
+
 	printf("CLIENT SIDE BUFFER RECEIVED: %s\n", (char*)buffer);
 	sscanf(buffer, "%d,%d,%d", &rwIndicator, &numByte, &errno);
 	close(clientSocket);

@@ -210,9 +210,6 @@ char* myOpen(clientData* userProfile)
 }
 char* myRead(clientData* userProfile)
 {
-	//char* stringNum = (char*)malloc(sizeof(char)*userProfile->numBytes+1);
-	//sprintf(stringNum, "%d", userProfile ->numBytes);
-	//int bufferLength = userProfile->numBytes +strlen(stringNum) +1;
 	char buffer[userProfile->numBytes];
 	bzero(buffer, userProfile->numBytes);
 	if(isOpen(userProfile) == FALSE)
@@ -272,18 +269,18 @@ char* myWrite (clientData* userProfile)
 		printf("file is OPEN\n");
 	}
 
-
+	
 
 	int numWritten = write(userProfile ->serverFD, userProfile->writeString, userProfile -> numBytes);	
 	if (numWritten < 0)
 	{
 		printf("error writing  %s file descriptor = %d\n", strerror(errno), (int)userProfile ->serverFD);
-		sprintf(buffer, "%d,%d,%d", FAIL, errno, h_errno); 
+		sprintf(buffer, "%d,%d,%d,%d", FAIL, -1, errno, h_errno); 
 	}
 	else
 	{
 		printf("NUM WRITTEN: %d\n", numWritten);	
-		sprintf(buffer, "%d,%d,%d", SUCCESS, numWritten, errno);
+		sprintf(buffer, "%d,%d,%d,%d", SUCCESS, numWritten, errno, h_errno);
 	}
 	printf("buffer: %s\n", buffer);
 	return buffer;
