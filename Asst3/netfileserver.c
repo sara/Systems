@@ -193,8 +193,11 @@ char* myOpen(clientData* userProfile)
 		int hashIndex = (serverFD)%100;
 	//	printf("HASH INDEX: %d\n", hashIndex);
 		//printf("myOpen file descriptor: %d, hashIndex %d\n");
-		userProfile -> next = fileTable->files[hashIndex];
-		fileTable->files[hashIndex] = userProfile;
+		
+		pthread_mutex_lock(&fileTableMutex);
+			userProfile -> next = fileTable->files[hashIndex];
+			fileTable->files[hashIndex] = userProfile;	
+		pthread_mutex_unlock(&fileTableMutex);
 		sprintf(buffer, "%d,%d,%d,%d", SUCCESS, -1*serverFD, errno, h_errno);
 		userProfile -> serverFD = serverFD;
 		userProfile -> clientFD = -1*serverFD;
@@ -232,9 +235,7 @@ char* myRead(clientData* userProfile)
 	}
 	printf("checked permissions\n");
 */		
-	//pthread_mutex_lock(&fileTableMutex);
 	int numRead = read(userProfile -> serverFD, buffer, userProfile -> numBytes);
-	//pthread_mutex_lock(&fileTableMutex);
 	if (numRead <0)
 	{
 		char* metaBuffer = (char*)malloc(sizeof(char)*(sizeof(int)*4+3));
@@ -273,9 +274,7 @@ char* myWrite (clientData* userProfile)
 
 
 
-	//pthread_mutex_lock(&fileTableMutex);
 	int numWritten = write(userProfile ->serverFD, userProfile->writeString, userProfile -> numBytes);	
-	//pthread_mutex_unlock(&fileTableMutex);
 	if (numWritten < 0)
 	{
 		printf("error writing  %s file descriptor = %d\n", strerror(errno), (int)userProfile ->serverFD);
@@ -298,37 +297,41 @@ char* myClose(clientData* userProfile)
 	char* buffer = (char*)malloc(sizeof(char)*100);;
 	bzero(buffer, 100);
 	int hashIndex = hash(serverFD);
-	curr = fileTable->files [hashIndex];
-	prev = curr;
-	while (curr!= NULL && curr->serverFD!=serverFD)
-	{
+	pthread_mutex_lock(&fileTableMutex);
+		curr = fileTable->files [hashIndex];
 		prev = curr;
-		curr = curr->next;
-		printf("CURRENT VALUE: %d\n", prev->serverFD);
-	}
-	//if file is not opened
-	if (curr == NULL)
-	{
-		sprintf(buffer, "%d%d%d", FAIL, EBADF, h_errno);
-		return buffer;
-	}
-	if (prev == curr)
-	{
-		fileTable->files[hashIndex] = NULL;
-	}
-	else
-	{
-		prev->next = curr->next;	
-	}
+		while (curr!= NULL && curr->serverFD!=serverFD)
+		{
+			prev = curr;
+			curr = curr->next;
+			printf("CURRENT VALUE: %d\n", prev->serverFD);
+		}
+		//if file is not opened
+		if (curr == NULL)
+		{
+			sprintf(buffer, "%d,%d,%d", FAIL, EBADF, h_errno);
+			pthread_mutex_unlock(&fileTableMutex);
+			printf("ERROR FILE NOT OPEN\nSERVER BUFFER %s\n", buffer);
+			return buffer;
+		}
+		if (prev == curr)
+		{
+			fileTable->files[hashIndex] = NULL;
+		}
+		else
+		{
+			prev->next = curr->next;	
+		}
+	pthread_mutex_unlock(&fileTableMutex);
 	//	printf("PREV NEXT IS %d\n", prev->next->serverFD);
 
 	closeResult = close(serverFD);
 	if (closeResult < 0)
 	{
-		sprintf(buffer, "%d%d%d", FAIL, errno, h_errno);
+		sprintf(buffer, "%d,%d,%d", FAIL, errno, h_errno);
 		return buffer;
 	}
-	sprintf(buffer, "%d%d%d", SUCCESS, errno, h_errno);
+	sprintf(buffer, "%d,%d,%d", SUCCESS, errno, h_errno);
 	return buffer;
 }
 void* clientHandler(void* clientSocket)

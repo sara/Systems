@@ -10,6 +10,7 @@
 
 static int hostValid = -1;
 static mode connectionMode = -1;
+static boolean connected = FALSE;
 
 int socketToTheMan(char* hostname)
 {
@@ -17,6 +18,7 @@ int socketToTheMan(char* hostname)
 	clientSocket = -1;
 	int portno = 9214;
 	serverIPAddress = gethostbyname(hostName);
+	printf("21\n");
 	if (serverIPAddress == NULL)
 	{
 		printf("ERROR INVALID HOST NAME\n");
@@ -27,17 +29,18 @@ int socketToTheMan(char* hostname)
 	if (clientSocket < 0)
 	{
 		printf("ERROR FAILED TO CREATE CLIENT SOCKET\n");
-		return -2;
+		return -1;
 	}
 
 	bzero((char*) &serverAddressInfo, sizeof(serverAddressInfo));
 	serverAddressInfo.sin_family = AF_INET;
 	bcopy((char*)serverIPAddress ->h_addr, (char*)&serverAddressInfo.sin_addr.s_addr, serverIPAddress -> h_length);
 	serverAddressInfo.sin_port = htons (portno);
+	printf("39\n");
 	if(connect(clientSocket, (struct sockaddr*)&serverAddressInfo, sizeof(serverAddressInfo)) < 0)
 	{
 		printf("ERROR FAILED TO CONNECT TO SERVER; errno: %d\n", errno);
-		return -3;
+		return -1;
 	}
 	return clientSocket;
 }
@@ -62,6 +65,7 @@ int netserverinit(char* hostname, mode privacyMode)
 	else
 	{
 		hostValid = 0;
+		connected = TRUE;
 		connectionMode = privacyMode;
 		hostName = (char*)malloc(sizeof(char)*strlen(hostname)+1);
 		strcpy(hostName, hostname);
@@ -128,7 +132,14 @@ int netopen (const char* pathname, int flags)
 
 int netclose(int fildes)
 {
+	int successIndicator = -1;
 	int rwIndicator = 0;
+	if (!connected)
+	{
+		printf("ERROR host_not_found\n");
+		h_errno = HOST_NOT_FOUND;
+		return -1;
+	}
 	int clientSocket = socketToTheMan(hostName);
 	if (fildes >= 0)
 	{	
@@ -154,7 +165,7 @@ int netclose(int fildes)
 		printf("ERROR failed to write\n");
 		return -1;
 	}
-	char buffer [100];
+	char* buffer = (char*)malloc(sizeof(char)*100);;
 	bzero(buffer, 100);
 	rwIndicator = read(clientSocket, buffer, 100);
 	if (rwIndicator < 0)
@@ -167,11 +178,13 @@ int netclose(int fildes)
 		return -1;
 	}
 	close(clientSocket);
-	sscanf(buffer, "%d%d%d", &rwIndicator, &errno, &h_errno);
-	if (rwIndicator<0)
+	sscanf(buffer, "%d,%d,%d", &successIndicator, &errno, &h_errno);
+	printf("CLOSE BUFFER: %s\n", buffer);
+	if (successIndicator==FALSE)
 	{
 		return -1;
 	}
+	printf("SUCCESSFUL CLOSE");
 	return 0;
 }
 
@@ -187,6 +200,12 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 		errno = EBADF;
 		return -1;
 	}
+	if (nbyte < 0)
+	{
+		printf("ERROR invalid read size\n");
+		return -1;
+	}
+
 	//allocate enough space for the total size of the command, amount of bytes you want to read, a file descriptor, indicator that you want to read
 	int commandLength = 1+3*sizeof(int);
 	char* command= (char*)malloc(sizeof(char)*commandLength);// [(int)nbyte+1];
