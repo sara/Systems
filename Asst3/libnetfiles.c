@@ -16,7 +16,6 @@ int socketToTheMan(char* hostname)
 {
 	hostName = hostname;
 	clientSocket = -1;
-	int portno = 9214;
 	serverIPAddress = gethostbyname(hostName);
 	printf("21\n");
 	if (serverIPAddress == NULL)
@@ -36,7 +35,6 @@ int socketToTheMan(char* hostname)
 	serverAddressInfo.sin_family = AF_INET;
 	bcopy((char*)serverIPAddress ->h_addr, (char*)&serverAddressInfo.sin_addr.s_addr, serverIPAddress -> h_length);
 	serverAddressInfo.sin_port = htons (portno);
-	printf("39\n");
 	if(connect(clientSocket, (struct sockaddr*)&serverAddressInfo, sizeof(serverAddressInfo)) < 0)
 	{
 		printf("ERROR FAILED TO CONNECT TO SERVER; errno: %d\n", errno);
@@ -85,6 +83,7 @@ int netopen (const char* pathname, int flags)
 	{
 		printf ("ERROR host not found\n");
 		h_errno = HOST_NOT_FOUND;
+		return -1;
 	}	
 	//character array the size of the path name (include a +1 for the terminating null character), then three integers to indicate privacy mode and read/write and indicate how long the string is, and a character to indicate it's an open operation
 	int commandLength = strlen(pathname)+2+3*sizeof(int);
