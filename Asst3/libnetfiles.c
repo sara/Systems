@@ -119,7 +119,7 @@ int netopen (const char* pathname, int flags)
 	{
 		return -1;
 	}
-	printf("[DEBUG] Buffer from server: %s\n", buffer);
+	printf("Buffer from server: %s\n", buffer);
 	sscanf(buffer, "%d,%d,%d,%d", &successIndicator, &fileDes, &errno, &h_errno);
 	if(successIndicator == FALSE)
 	{

@@ -65,10 +65,6 @@ clientData* makeClient(int clientSockFD, int commandLength)
 			userProfile -> fileMode = (int)buffer[sizeof(int)+1-4];
 			userProfile -> pathName = path;	
 			userProfile -> privacyMode = (int)buffer[2*sizeof(int)+1-4];
-			
-			//printf("FILE MODE: %d\n", userProfile -> fileMode);
-			
-			
 			break;
 	
 		case 'R':
@@ -115,39 +111,49 @@ void destroyUser(clientData* user)
 	free(user->pathName);
 	free(user);
 }
-int hash (int fileDes)
+int hash (char* filePath)
 {
-	int hash = fileDes%100;
+	int hash = filePath[0]%100;
 	return hash;
 }
 boolean checkPermissions(clientData* userProfile)
 {
-	 clientData *curr;
-	 for (curr = fileTable->files[hash(userProfile->serverFD)]; curr!=NULL; curr = curr-> next)
-	 {
+	printf("checking client permissions\n"); 
+	clientData *curr;
+	pthread_mutex_lock(&fileTableMutex);
+	printf("in mutex; server FD is %d, hash value is %d\n", userProfile -> serverFD, hash(userProfile->pathName));
+	for (curr = fileTable->files[hash(userProfile->pathName)]; curr!=NULL; curr = curr-> next)
+	 {printf("127\n");
 		if (strcmp(curr->pathName, userProfile->pathName)==0)
 		{printf("122\n");
 			if(curr->privacyMode == TRANSACTION)
 			{
 				printf("ERROR file already open in transaction mode\n");
+	 			pthread_mutex_unlock(&fileTableMutex);
 				return FALSE;
 			}
 			if (curr->privacyMode == EXCLUSIVE)
 			{
 				if (userProfile -> fileMode == O_RDONLY || curr->fileMode == O_RDONLY)
 				{
+					
+	 				pthread_mutex_unlock(&fileTableMutex);
 					return TRUE;
 				}
 				printf("ERROR file already open for writing in exclusive mode\n");
 			}
+
+	 		pthread_mutex_unlock(&fileTableMutex);
 			return FALSE;
 		}
 	 }
+
+	 pthread_mutex_unlock(&fileTableMutex);
 	 return TRUE;
 }
 boolean isOpen(clientData* userProfile)
 {
-	int hashIndex = hash(userProfile->serverFD);
+	int hashIndex = hash(userProfile->pathName);
 	//printf("isOpen fileDes: %d isOpen hash index: %d\n", userProfile->serverFD, hashIndex);
 	//printf("READ STATUS: %d\n", fileTable->files[hashIndex]->serverFD);
 	
@@ -159,25 +165,16 @@ boolean isOpen(clientData* userProfile)
 			return TRUE;
 		curr = curr->next;
 	}
-	printf("is not open\n");
+	//printf("is not open\n");
 	return FALSE;
 }
 char* myOpen(clientData* userProfile)
 {
-	printf("PATH NAME: %s\n", userProfile -> pathName);
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
-//	printf("%s\n", userProfile->pathName);
-	int serverFD = open(userProfile -> pathName, userProfile -> fileMode);
-	if (serverFD < 0)
-	{
-		printf("failed to open file\n");
-		sprintf(buffer, "%d,%d,%d,%d", FAIL, 0, errno, h_errno);
-		return buffer;
-	}
+
 	
-	//check file table to make sure the operation is permitted with in case or preexisting files with 
-	//prohibive privacy permissions
+	//check file table to make sure the operation is permitted with in case or preexisting files with prohibive privacy permissions
 	
 	if (checkPermissions(userProfile) == FALSE)
 	{
@@ -190,22 +187,27 @@ char* myOpen(clientData* userProfile)
 	//user is allowed to proceed, set up the open
 	else
 	{
-		int hashIndex = (serverFD)%100;
-	//	printf("HASH INDEX: %d\n", hashIndex);
-		//printf("myOpen file descriptor: %d, hashIndex %d\n");
-		
+		int serverFD = open(userProfile -> pathName, userProfile -> fileMode);
+		//check for open failures
+		if (serverFD < 0)
+		{
+			printf("failed to open file\n");
+			sprintf(buffer, "%d,%d,%d,%d", FAIL, 0, errno, h_errno);
+			return buffer;
+		}
+		int hashIndex = hash(userProfile->pathName);
+		//Add the new file profile to the master hash table	
 		pthread_mutex_lock(&fileTableMutex);
 			userProfile -> next = fileTable->files[hashIndex];
 			fileTable->files[hashIndex] = userProfile;	
 		pthread_mutex_unlock(&fileTableMutex);
+		
 		sprintf(buffer, "%d,%d,%d,%d", SUCCESS, -1*serverFD, errno, h_errno);
 		userProfile -> serverFD = serverFD;
 		userProfile -> clientFD = -1*serverFD;
-	//	printf("OPEN FILE DES: %d OPEN HASH INDEX: %d\n", userProfile->serverFD, hashIndex);	
-				
-		//printf("OPEN TABLE STATE: %d\n", fileTable ->files[hash(hashIndex)]->serverFD);
+		printf("SERVER HASH INDEX: %d\n", hash(userProfile->pathName));
 	}
-	
+		
 	return buffer;
 }
 char* myRead(clientData* userProfile)
@@ -293,7 +295,7 @@ char* myClose(clientData* userProfile)
 	int closeResult;
 	char* buffer = (char*)malloc(sizeof(char)*100);;
 	bzero(buffer, 100);
-	int hashIndex = hash(serverFD);
+	int hashIndex = hash(userProfile->pathName);
 	pthread_mutex_lock(&fileTableMutex);
 		curr = fileTable->files [hashIndex];
 		prev = curr;
