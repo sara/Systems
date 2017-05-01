@@ -111,14 +111,13 @@ int hash (char* filePath)
 }
 boolean checkPermissions(clientData* userProfile)
 {
-	printf("checking client permissions\n"); 
 	clientData *curr;
 	pthread_mutex_lock(&userListMutex);
 	//printf("in mutex; server FD is %d, hash value is %d\n", userProfile -> serverFD, hash(userProfile->pathName));
 	for (curr = userList/*fileTable->files[hash(userProfile->pathName)]*/; curr!=NULL; curr = curr-> next)
-	 {printf("127\n");
+	 {
 		if (strcmp(curr->pathName, userProfile->pathName)==0)
-		{printf("122\n");
+		{
 			if(curr->privacyMode == TRANSACTION)
 			{
 				printf("ERROR file already open in transaction mode\n");
@@ -129,18 +128,16 @@ boolean checkPermissions(clientData* userProfile)
 			{
 				if (userProfile -> fileMode == O_RDONLY || curr->fileMode == O_RDONLY)
 				{
-					
 	 				pthread_mutex_unlock(&userListMutex);
 					return TRUE;
 				}
 				printf("ERROR file already open for writing in exclusive mode\n");
-			}
-
+			
 	 		pthread_mutex_unlock(&userListMutex);
 			return FALSE;
-		}
+			}
 	 }
-
+	 }
 	 pthread_mutex_unlock(&userListMutex);
 	 return TRUE;
 }
@@ -165,6 +162,7 @@ char* myOpen(clientData* userProfile)
 {
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
+	printf("USER PRIVACY MODE: %d\n", userProfile -> privacyMode); 
 	//check file table to make sure the operation is permitted with in case or preexisting files with prohibive privacy permissions
 	if (checkPermissions(userProfile) == FALSE)
 	{
