@@ -74,7 +74,6 @@ int netserverinit(char* hostname, mode privacyMode)
 
 int netopen (const char* pathname, int flags)
 {
-//	printf("PERFORMING NET OPEN\n");
 	char buffer [100];
 	bzero(buffer, 100);
 	int rwIndicator = 0;
@@ -95,13 +94,7 @@ int netopen (const char* pathname, int flags)
 	command[sizeof(int)] = 'O';
 	*(int*)(command +sizeof(int)+1) = flags;
 	*(int*)(command +2*sizeof(int)+1) = connectionMode;
-	
-	
-	//	command[3*sizeof(int)+1] = pathname;
 	strcpy(command+(3*sizeof(int)+1), pathname);
-	//strcpy(command "%c,%d,%d,%s", 'O', flags, connectionMode, pathname);
-	//	command[0] = 'O';
-//	command [1] = flags;
 	rwIndicator = write(clientSocket, command, commandLength);
 	if (rwIndicator < 0)
 	{
@@ -119,7 +112,6 @@ int netopen (const char* pathname, int flags)
 	{
 		return -1;
 	}
-	printf("Buffer from server: %s\n", buffer);
 	sscanf(buffer, "%d,%d,%d,%d", &successIndicator, &fileDes, &errno, &h_errno);
 	if(successIndicator == FALSE)
 	{
@@ -128,7 +120,7 @@ int netopen (const char* pathname, int flags)
 	}
 	close(clientSocket);
 	return fileDes;
-	}
+}
 
 int netclose(int fildes)
 {
@@ -205,7 +197,6 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 		printf("ERROR invalid read size\n");
 		return -1;
 	}
-
 	//allocate enough space for the total size of the command, amount of bytes you want to read, a file descriptor, indicator that you want to read
 	int commandLength = 1+3*sizeof(int);
 	char* command= (char*)malloc(sizeof(char)*commandLength);// [(int)nbyte+1];
@@ -214,25 +205,17 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	int rwIndicator = -1;
 	int numByte = -1;
 	int clientSocket = socketToTheMan(hostName);
-	
 	*(int *)command = commandLength;
 	command[sizeof(int)] = 'R';
 	*(int *)(command + sizeof(int)+1) = fildes;
 	*(int *)(command + 2*sizeof(int)+1) = nbyte;
-//	printf("COMMAND LENGTH: %d\n", (int)command[0]);	
 	char readString [nbyte];
-	//strcpy (command, (char*)buf);
-
-	//int numByte=0;
-	//sprintf(command, "%d%c%d", (int)nbyte, fildes, 'R');
-	//char* readString;
 	rwIndicator = write (clientSocket, command, commandLength);
 	if (rwIndicator < 0)
 	{
 		printf("ERROR writing to socket\n");
 		close(clientSocket);
 		return -1;
- 		//error codes? should i return?
 	}
 	rwIndicator = read(clientSocket, buffer,  nbyte+1);
 	if(rwIndicator < 0)
@@ -241,7 +224,6 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 		printf("ERROR: failed to read\n");
 		return -1;
 	}
-	
 	if ((int)buffer[0] < 0)
 	{
 		sscanf(buffer, "%d%d%d", &rwIndicator, &errno, &h_errno);
@@ -256,7 +238,6 @@ ssize_t netread (int fildes, void* buf, size_t nbyte)
 	}
 	sscanf(buffer, "%d,%d,%s", &rwIndicator, &numByte, readString);
 	close(clientSocket);
-	//printf("libnet numRead: %d\n", numByte);
 	return numByte;
 	}
 
@@ -289,11 +270,6 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 	*(int *)(command+2*sizeof(int)+1) = nbyte;
 	strcpy (command+num, (char*)buf);
 	int numByte=0;
-	//printf("command length: %d\ncommand: %c\nfiledes: %d\nnumBytes:%d\nstring: %s\n", (int)command[0], command[sizeof(int)], (int)command[sizeof(int)+1], (int)command[2*sizeof(int)+1], (char*)command+num);
-
-
-	//sprintf(command, "%c,%d,%d,%s", 'W', fildes, (int)nbyte, (char*)buf);
-	//char* readString;
 	rwIndicator = write (clientSocket, command, commandLength);
 	if (rwIndicator < 0)
 	{
@@ -302,33 +278,21 @@ ssize_t netwrite (int fildes, void* buf, size_t nbyte)
 		return -1;
 	}
 	rwIndicator = read(clientSocket, buffer, sizeof(buffer));
-	printf("304\n");
 	if(rwIndicator < 0)
 	{
 		close(clientSocket);
 		printf("ERROR: failed to read %s\n", strerror(errno));
 		return -1;
 	}
-	printf("311\n");
-	/*if ((int)buffer[0] < 0)
-	{
-		sscanf(buffer, "%d%d%d", &rwIndicator, &errno, &h_errno);
-		close (clientSocket);
-		return -1;
-	}*/
-	
 	sscanf(buffer, "%d,%d,%d,%d", &successIndicator, &numByte,  &errno, &h_errno);	
-	
 	if(successIndicator == FALSE)
 	{
 		printf("WRITE FAILED errno: %s h_errno: %s\n", strerror(errno), strerror(h_errno));
 		close(clientSocket);
 		return -1;
 	}
-
-	printf("CLIENT SIDE BUFFER RECEIVED: %s\n", (char*)buffer);
 	sscanf(buffer, "%d,%d,%d", &rwIndicator, &numByte, &errno);
 	close(clientSocket);
-	printf("libnet numWritten: %d %d %d\n", rwIndicator, numByte, errno);
+	printf("NUM WRITTEN: %d %d %d\n", rwIndicator, numByte, errno);
 	return numByte;
 	}

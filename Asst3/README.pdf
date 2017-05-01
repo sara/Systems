@@ -1,0 +1,84 @@
+***************** CLIENT SIDE ********************
+
+Net server init:
+	- check that hostname is valid
+	- check that desired access mode (unrestricted, exclusive, transaction)
+	is within bounds enumerated
+	- set global indicator that the host is valid and connected to true, establish
+	global privacy mode and host name
+
+Net open:
+	- create a command "string" long enough to hold the path name, three integers
+	indicating the total length of the command, privacy mode, read/write/readwrite access, and a characterindicating it's an open operation
+	- copy data into string using proper casting, send to server and parese response
+
+Net close:
+	- check that the input file descriptor is valid and the client is connected to the server
+	- create command string with enough space for an integer denoting the total length of the command, a character denoting the close operation, and an integer denoting the file descriptor
+	- - copy data in with proper casting, send to server and parse response
+
+Net read:
+	- check that the host, file descriptor, and number of bytes to read are all valid numbers
+	- create a string long enough to hold an integer denoting its total length, a character denoting that it is a read operation, an integer file descriptor, and the number of bytes to read
+	- copy data in with proper casting, send to server and parse response
+
+New write: 
+	- check that the host and file descriptors are valid
+	- create a string long enough to hold an integer denoting the total length of the string, the file descriptor, and number of bytes to write, 
+	- copy data with proper casting, send to server and parse response
+
+
+
+**************** SERVER SIDE *********************
+
+Types and structs:
+- boolean, success/fail, and privacy (unrestricted, exclusive, transaction) modes
+- clientData struct
+	- node with fields for full client profile, including information such as privacy mode, file descriptors, operations to perform, path name, and all other relevant information for server side operations
+
+
+
+Logic:
+
+- listen for client requests in infinite while loop
+- on successful accept, spawn a new worker thread to deal with client requests
+- in clientHandler function, read first four bytes of buffer stream to determine how long rest of command is (necessary because different commands will be different lengths, especially net write as it contains the string to write to the file)
+- parse remainder of string and create client profile, pass to appropriate function
+
+net open:
+- validate that user is allowed to have access to the file given the access modes in extension A (send back error if not permitted)
+- if allowed, attemp to open file
+- lock linked list of open user profiles to add new profile to it
+- return sting to user with success status, file descriptor and errno/h_errno, with alterations as necessary if open fails
+
+net read:
+- check that file descriptor provided is actually open, return string with failure and bad file error if not
+- attempt to read from file, handling read/write access errors appropriately, and return string with data about success/failure, number of bytes read, and any errors
+
+net write:
+- check that file descriptor provided is actually open, return string with failure and and bad file error if not
+- attempt to write to file, return string with success/fail status, number of bytes written, and any applicable errors
+
+net close:
+- check that file is actually open, return failure with bad file error if not
+- move along master linked list and remove user profile
+- close file descriptor, return string with success/fail status and any applicable errors
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
