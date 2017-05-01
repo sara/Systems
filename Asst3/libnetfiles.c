@@ -16,8 +16,8 @@ int socketToTheMan(char* hostname)
 {
 	hostName = hostname;
 	clientSocket = -1;
+	int portno = 9214;
 	serverIPAddress = gethostbyname(hostName);
-	printf("21\n");
 	if (serverIPAddress == NULL)
 	{
 		printf("ERROR INVALID HOST NAME\n");
@@ -40,6 +40,7 @@ int socketToTheMan(char* hostname)
 		printf("ERROR FAILED TO CONNECT TO SERVER; errno: %d\n", errno);
 		return -1;
 	}
+	printf("SOCKET NUMBER IS %d\n", clientSocket);
 	return clientSocket;
 }
 

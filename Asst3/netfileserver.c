@@ -27,12 +27,13 @@ typedef struct ClientData
 	int numBytes;
 	struct ClientData* next;
 } clientData;
-typedef struct dataTable
+/*typedef struct node
 {
-	clientData* files [100];
-}dataTable;
-dataTable* fileTable;
-pthread_mutex_t fileTableMutex;
+	clientData* head
+}dataTable;*/
+
+clientData* userList;
+pthread_mutex_t userListMutex;
 clientData* makeClient(int clientSockFD, int commandLength)
 {
 	char* buffer = (char*)malloc(sizeof(char)*(commandLength - 4)); 
@@ -80,14 +81,6 @@ clientData* makeClient(int clientSockFD, int commandLength)
 			//userProfile->serverFD = sscanf(command+1, "%d", &fileDes);
 			break;
 		case 'W':
-
-			printf("HERE NOW\n");
-			//writeString = (char*)malloc(sizeof(char)*strlen(command));
-			//sscanf(command+2, "%d,%d", &fileDes, &nbyte);
-			//garbageString = (char*)malloc(sizeof(char) * (nbyte+(fileDes*-1)+4));
-			//sprintf(garbageString, "%c,%d,%d", 'W', fileDes, nbyte);
-			//strncpy(writeString, command+strlen(garbageString), strlen(writeString)-strlen(garbageString));
-			//free(garbageString);
 			userProfile -> clientFD = (int)buffer[sizeof(int)+1-4];
 			userProfile -> serverFD = -1*userProfile->clientFD;
 			userProfile -> numBytes = (int)buffer[2*sizeof(int)+1-4];
@@ -97,7 +90,7 @@ clientData* makeClient(int clientSockFD, int commandLength)
 	}
 	return userProfile;
 }
-void makeTable()
+/*void makeTable()
 {
 	int i;
 	fileTable = (dataTable*)malloc(sizeof(dataTable));
@@ -105,7 +98,7 @@ void makeTable()
 	{
 		fileTable->files[i] = NULL;
 	}
-}
+}*/
 void destroyUser(clientData* user)
 {
 	free(user->pathName);
@@ -120,16 +113,16 @@ boolean checkPermissions(clientData* userProfile)
 {
 	printf("checking client permissions\n"); 
 	clientData *curr;
-	pthread_mutex_lock(&fileTableMutex);
-	printf("in mutex; server FD is %d, hash value is %d\n", userProfile -> serverFD, hash(userProfile->pathName));
-	for (curr = fileTable->files[hash(userProfile->pathName)]; curr!=NULL; curr = curr-> next)
+	pthread_mutex_lock(&userListMutex);
+	//printf("in mutex; server FD is %d, hash value is %d\n", userProfile -> serverFD, hash(userProfile->pathName));
+	for (curr = userList/*fileTable->files[hash(userProfile->pathName)]*/; curr!=NULL; curr = curr-> next)
 	 {printf("127\n");
 		if (strcmp(curr->pathName, userProfile->pathName)==0)
 		{printf("122\n");
 			if(curr->privacyMode == TRANSACTION)
 			{
 				printf("ERROR file already open in transaction mode\n");
-	 			pthread_mutex_unlock(&fileTableMutex);
+	 			pthread_mutex_unlock(&userListMutex);
 				return FALSE;
 			}
 			if (curr->privacyMode == EXCLUSIVE)
@@ -137,27 +130,27 @@ boolean checkPermissions(clientData* userProfile)
 				if (userProfile -> fileMode == O_RDONLY || curr->fileMode == O_RDONLY)
 				{
 					
-	 				pthread_mutex_unlock(&fileTableMutex);
+	 				pthread_mutex_unlock(&userListMutex);
 					return TRUE;
 				}
 				printf("ERROR file already open for writing in exclusive mode\n");
 			}
 
-	 		pthread_mutex_unlock(&fileTableMutex);
+	 		pthread_mutex_unlock(&userListMutex);
 			return FALSE;
 		}
 	 }
 
-	 pthread_mutex_unlock(&fileTableMutex);
+	 pthread_mutex_unlock(&userListMutex);
 	 return TRUE;
 }
 boolean isOpen(clientData* userProfile)
 {
-	int hashIndex = hash(userProfile->pathName);
+	//int hashIndex = hash(userProfile->pathName);
 	//printf("isOpen fileDes: %d isOpen hash index: %d\n", userProfile->serverFD, hashIndex);
 	//printf("READ STATUS: %d\n", fileTable->files[hashIndex]->serverFD);
 	
-	clientData* curr = fileTable->files[hashIndex];
+	clientData* curr = userList;//fileTable->files[hashIndex];
 	while (curr!= NULL)
 	{
 		//printf("TABLE STATE: %d\n", fileTable ->files[hash(userProfile->serverFD)]->serverFD);
@@ -172,10 +165,7 @@ char* myOpen(clientData* userProfile)
 {
 	char* buffer = (char*)malloc(sizeof(char)*100);
 	bzero(buffer, 100);
-
-	
 	//check file table to make sure the operation is permitted with in case or preexisting files with prohibive privacy permissions
-	
 	if (checkPermissions(userProfile) == FALSE)
 	{
 		printf("PERMISSION DENIED\n");
@@ -183,7 +173,6 @@ char* myOpen(clientData* userProfile)
 		sprintf(buffer, "%d,%d,%d,%d", FAIL, 0, errno, h_errno);
 		return buffer;
 	}
-	
 	//user is allowed to proceed, set up the open
 	else
 	{
@@ -195,12 +184,13 @@ char* myOpen(clientData* userProfile)
 			sprintf(buffer, "%d,%d,%d,%d", FAIL, 0, errno, h_errno);
 			return buffer;
 		}
-		int hashIndex = hash(userProfile->pathName);
+		//int hashIndex = hash(userProfile->pathName);
 		//Add the new file profile to the master hash table	
-		pthread_mutex_lock(&fileTableMutex);
-			userProfile -> next = fileTable->files[hashIndex];
-			fileTable->files[hashIndex] = userProfile;	
-		pthread_mutex_unlock(&fileTableMutex);
+		pthread_mutex_lock(&userListMutex);
+			userProfile -> next = userList;
+			userList = userProfile;
+			//fileTable->files[hashIndex] = userProfile;	
+		pthread_mutex_unlock(&userListMutex);
 		
 		sprintf(buffer, "%d,%d,%d,%d", SUCCESS, -1*serverFD, errno, h_errno);
 		userProfile -> serverFD = serverFD;
@@ -295,9 +285,11 @@ char* myClose(clientData* userProfile)
 	int closeResult;
 	char* buffer = (char*)malloc(sizeof(char)*100);;
 	bzero(buffer, 100);
-	int hashIndex = hash(userProfile->pathName);
-	pthread_mutex_lock(&fileTableMutex);
-		curr = fileTable->files [hashIndex];
+	printf("CLOSE FILE PATH: %s\n", userProfile -> pathName);
+	//int hashIndex = hash(userProfile->pathName);
+	printf("299\n");
+	pthread_mutex_lock(&userListMutex);
+		curr = userList;
 		prev = curr;
 		while (curr!= NULL && curr->serverFD!=serverFD)
 		{
@@ -309,19 +301,20 @@ char* myClose(clientData* userProfile)
 		if (curr == NULL)
 		{
 			sprintf(buffer, "%d,%d,%d", FAIL, EBADF, h_errno);
-			pthread_mutex_unlock(&fileTableMutex);
+			pthread_mutex_unlock(&userListMutex);
 			printf("ERROR FILE NOT OPEN\nSERVER BUFFER %s\n", buffer);
 			return buffer;
 		}
 		if (prev == curr)
 		{
-			fileTable->files[hashIndex] = NULL;
+			userList = userList->next;
+			//fileTable->files[hashIndex] = NULL;
 		}
 		else
 		{
 			prev->next = curr->next;	
 		}
-	pthread_mutex_unlock(&fileTableMutex);
+	pthread_mutex_unlock(&userListMutex);
 	//	printf("PREV NEXT IS %d\n", prev->next->serverFD);
 
 	closeResult = close(serverFD);
@@ -364,8 +357,9 @@ void* clientHandler(void* clientSocket)
 	switch (userProfile -> opMode)
 	{
 		case 'O':
-			 buffer = myOpen(userProfile);
-			 break;
+			buffer = myOpen(userProfile);
+			printf("POST OPEN PATH NAME: %s\n", userProfile -> pathName);
+			break;
 		case 'R':
 			buffer = myRead(userProfile);
 			break;
@@ -373,6 +367,7 @@ void* clientHandler(void* clientSocket)
 			buffer = myWrite (userProfile);
 			break;
 		case 'C':
+			printf("ENTERING CLOSE PATH NAME: %s\n", userProfile -> pathName);
 			buffer = myClose(userProfile);
 			break;
 	}
@@ -387,7 +382,7 @@ int main (int argc, char** argv)
 	int portno = 9214;
 	int clilen = -1;
 	struct sockaddr_in serverAddressInfo, clientAddressInfo;
-	pthread_mutex_init(&fileTableMutex, NULL);
+	pthread_mutex_init(&userListMutex, NULL);
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
@@ -412,7 +407,7 @@ int main (int argc, char** argv)
 		}
 	clilen  = sizeof(clientAddressInfo);
 	pthread_t clientThread;
-	makeTable(fileTable);
+	//makeTable(fileTable);
 	while (active == TRUE)
 	{
 		printf("Listening for client requests\n");
