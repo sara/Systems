@@ -1,15 +1,15 @@
-CC = gcc
+CC gcc
 CCFLAGS = -Wall
 
 all: libnetfiles netfileserver
 
 libnetfiles: libnetfiles.h libnetfiles.c
-	$(CC) $(CCFLAGS) -o  client libnetfiles.c
+	$(CC) $(CCFLAGS)  libnetfiles.c netclient.c -o netclient
 
 netfileserver: libnetfiles.h netfileserver.c
-	$(CC) $(CCFLAGS) -pthread -o server netfileserver.c
+	$(CC) $(CCFLAGS) -pthread -o netfileserver netfileserver.c
 
 
 
 clean:
-	rm - rf client server
+	rm client server
